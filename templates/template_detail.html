@@ -1,14 +1,106 @@
 {% extends 'base.html' %}
 {% block title %}{{ template['name'] }} — NewsLetterGo{% endblock %}
 {% block content %}
+<style>
+    .color-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+    .color-row label {
+        min-width: 90px;
+        margin: 0;
+    }
+    .color-row input[type="color"] {
+        width: 40px;
+        height: 32px;
+        padding: 2px;
+        border: 1px solid #475569;
+        border-radius: 6px;
+        cursor: pointer;
+        background: #0f172a;
+    }
+    .color-row input[type="text"] {
+        width: 90px;
+        padding: 6px 8px;
+        font-size: 13px;
+        font-family: monospace;
+    }
+    .preset-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 6px;
+        margin: 8px 0 16px;
+    }
+    .preset-swatch {
+        height: 40px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 2px solid transparent;
+        transition: all 0.15s;
+        position: relative;
+    }
+    .preset-swatch:hover {
+        border-color: #38bdf8;
+        transform: scale(1.05);
+    }
+    .preset-swatch .preset-label {
+        position: absolute;
+        bottom: -16px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 9px;
+        color: #64748b;
+    }
+    .style-section {
+        border-bottom: 1px solid #334155;
+        padding-bottom: 14px;
+        margin-bottom: 14px;
+    }
+    .style-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .style-section h4 {
+        font-size: 13px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 10px;
+    }
+    .three-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr 320px;
+        gap: 16px;
+    }
+    @media (max-width: 1100px) {
+        .three-col { grid-template-columns: 1fr; }
+    }
+    .preview-frame {
+        background: #e5e7eb;
+        padding: 16px;
+        border-radius: 8px;
+        margin-top: 8px;
+    }
+    .preview-frame .preview-box {
+        margin-top: 0;
+        max-height: 700px;
+        border-radius: 6px;
+    }
+</style>
+
 <h1>{{ template['name'] }}</h1>
 <p class="text-muted mb-8">{{ template['description'] }}</p>
 
 <form id="emailForm" method="POST" action="{{ url_for('template_send', slug=template['slug']) }}">
-    <div class="grid grid-2">
+    <div class="three-col">
+        <!-- COLUMN 1: Content fields -->
         <div>
             <div class="card">
-                <h3 class="mb-8">Fill In Your Content</h3>
+                <h3 class="mb-8">Content</h3>
                 {% for field in fields %}
                 <div class="form-group">
                     <label>{{ field['label'] }}</label>
@@ -43,12 +135,117 @@
             </div>
         </div>
 
+        <!-- COLUMN 2: Style customization -->
         <div>
             <div class="card">
+                <h3 class="mb-8">Style & Design</h3>
+
+                <!-- COLOR PRESETS -->
+                <div class="style-section">
+                    <h4>Quick Presets</h4>
+                    <div class="preset-grid">
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"
+                             onclick="applyPreset('#6366f1','#f0f0ff','#ffffff','#1e1b4b','Söhne, -apple-system, sans-serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#059669,#10b981);"
+                             onclick="applyPreset('#059669','#ecfdf5','#ffffff','#1a1a2e','Georgia, serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#dc2626,#f97316);"
+                             onclick="applyPreset('#dc2626','#fff5f5','#ffffff','#1a1a1a','-apple-system, Helvetica, sans-serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);"
+                             onclick="applyPreset('#0ea5e9','#f0f9ff','#ffffff','#0c4a6e','-apple-system, Helvetica, sans-serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#1a1a2e,#333);"
+                             onclick="applyPreset('#f5f5f5','#2a2a3e','#1a1a2e','#e0e0e0','Menlo, Consolas, monospace')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#ec4899,#f472b6);"
+                             onclick="applyPreset('#ec4899','#fdf2f8','#ffffff','#1a1a2e','Georgia, serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);"
+                             onclick="applyPreset('#f59e0b','#fffbeb','#ffffff','#1a1a1a','Palatino, Georgia, serif')"></div>
+                        <div class="preset-swatch" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);"
+                             onclick="applyPreset('#8b5cf6','#f5f3ff','#ffffff','#1e1b4b','Söhne, -apple-system, sans-serif')"></div>
+                    </div>
+                </div>
+
+                <!-- INDIVIDUAL COLORS -->
+                <div class="style-section">
+                    <h4>Colors</h4>
+                    <div class="color-row">
+                        <label>Primary</label>
+                        <input type="color" id="cp_primary" value="#6366f1" onchange="syncColor('_primary', this.value)">
+                        <input type="text" id="ct_primary" name="_primary" value="#6366f1" onchange="syncColorFromText('_primary', this.value)">
+                    </div>
+                    <div class="color-row">
+                        <label>Secondary</label>
+                        <input type="color" id="cp_secondary" value="#f0f0ff" onchange="syncColor('_secondary', this.value)">
+                        <input type="text" id="ct_secondary" name="_secondary" value="#f0f0ff" onchange="syncColorFromText('_secondary', this.value)">
+                    </div>
+                    <div class="color-row">
+                        <label>Background</label>
+                        <input type="color" id="cp_bg" value="#ffffff" onchange="syncColor('_bg', this.value)">
+                        <input type="text" id="ct_bg" name="_bg" value="#ffffff" onchange="syncColorFromText('_bg', this.value)">
+                    </div>
+                    <div class="color-row">
+                        <label>Text</label>
+                        <input type="color" id="cp_text" value="#1e1b4b" onchange="syncColor('_text', this.value)">
+                        <input type="text" id="ct_text" name="_text" value="#1e1b4b" onchange="syncColorFromText('_text', this.value)">
+                    </div>
+                </div>
+
+                <!-- FONT -->
+                <div class="style-section">
+                    <h4>Typography</h4>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <select name="_font" id="fontSelect" onchange="previewEmail()">
+                            <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">System Default (Clean)</option>
+                            <option value="Georgia, 'Times New Roman', serif">Georgia (Classic)</option>
+                            <option value="Palatino, 'Palatino Linotype', 'Book Antiqua', serif">Palatino (Elegant)</option>
+                            <option value="'Courier New', Courier, monospace">Courier (Typewriter)</option>
+                            <option value="Menlo, Consolas, 'Liberation Mono', monospace">Menlo (Developer)</option>
+                            <option value="Verdana, Geneva, sans-serif">Verdana (Readable)</option>
+                            <option value="Tahoma, Geneva, sans-serif">Tahoma (Compact)</option>
+                            <option value="'Trebuchet MS', 'Lucida Sans', sans-serif">Trebuchet (Friendly)</option>
+                            <option value="Impact, 'Arial Black', sans-serif">Impact (Bold)</option>
+                            <option value="'Comic Sans MS', 'Comic Sans', cursive">Comic Sans (Casual)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- IMAGES -->
+                <div class="style-section">
+                    <h4>Images</h4>
+                    <div class="form-group">
+                        <label>Header / Banner Image URL</label>
+                        <input type="text" name="_header_img" id="headerImgInput" placeholder="https://example.com/banner.jpg">
+                        <p class="text-sm text-muted" style="margin-top:3px;">Full-width image at the top. Recommended: 600px wide.</p>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>Logo Image URL</label>
+                        <input type="text" name="_logo_img" id="logoImgInput" placeholder="https://example.com/logo.png">
+                        <p class="text-sm text-muted" style="margin-top:3px;">Small logo shown in the header area.</p>
+                    </div>
+                </div>
+
+                <!-- FOOTER -->
+                <div class="style-section">
+                    <h4>Footer</h4>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <input type="text" name="_footer" id="footerInput" placeholder="e.g. Follow me @handle | Unsubscribe">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: Live preview -->
+        <div>
+            <div class="card" style="position:sticky;top:16px;">
                 <h3 class="mb-8">Preview</h3>
-                <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;">Subject will appear here...</div>
-                <div id="previewBody" class="preview-box">
-                    <p style="color:#999;text-align:center;padding:40px;">Fill in the fields and click Preview</p>
+                <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;font-size:13px;">
+                    Subject line appears here...
+                </div>
+                <div class="preview-frame">
+                    <div id="previewBody" class="preview-box" style="min-height:300px;">
+                        <p style="color:#999;text-align:center;padding:60px 20px;">
+                            Fill in some content and it'll preview here.<br>
+                            <small>Try clicking a color preset to start!</small>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -56,18 +253,65 @@
 </form>
 
 <script>
-async function previewEmail() {
-    const form = document.getElementById('emailForm');
-    const formData = new FormData(form);
-
-    const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
-        method: 'POST',
-        body: formData
-    });
-    const data = await resp.json();
-
-    document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
-    document.getElementById('previewBody').innerHTML = data.body;
+function syncColor(field, value) {
+    document.getElementById('ct' + field).value = value;
+    document.getElementById('cp' + field).value = value;
+    previewEmail();
 }
+
+function syncColorFromText(field, value) {
+    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+        document.getElementById('cp' + field).value = value;
+        previewEmail();
+    }
+}
+
+function applyPreset(primary, secondary, bg, text, font) {
+    document.getElementById('cp_primary').value = primary;
+    document.getElementById('ct_primary').value = primary;
+    document.getElementById('cp_secondary').value = secondary;
+    document.getElementById('ct_secondary').value = secondary;
+    document.getElementById('cp_bg').value = bg;
+    document.getElementById('ct_bg').value = bg;
+    document.getElementById('cp_text').value = text;
+    document.getElementById('ct_text').value = text;
+
+    // Find matching font option
+    const sel = document.getElementById('fontSelect');
+    for (let i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value.indexOf(font.split(',')[0].replace(/'/g,'')) >= 0) {
+            sel.selectedIndex = i;
+            break;
+        }
+    }
+    previewEmail();
+}
+
+let previewTimeout;
+async function previewEmail() {
+    clearTimeout(previewTimeout);
+    previewTimeout = setTimeout(async () => {
+        const form = document.getElementById('emailForm');
+        const formData = new FormData(form);
+
+        try {
+            const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await resp.json();
+            document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
+            document.getElementById('previewBody').innerHTML = data.body;
+        } catch(e) {}
+    }, 200);
+}
+
+// Auto-preview on any input change
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+        el.addEventListener('input', () => previewEmail());
+        el.addEventListener('change', () => previewEmail());
+    });
+});
 </script>
 {% endblock %}

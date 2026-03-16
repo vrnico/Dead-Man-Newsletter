@@ -325,6 +325,31 @@ def template_detail(slug):
     return render_template('template_detail.html', template=tpl, fields=fields, groups=sorted(all_groups))
 
 
+STYLE_DEFAULTS = {
+    '_primary': '#6366f1',
+    '_secondary': '#f0f0ff',
+    '_bg': '#ffffff',
+    '_text': '#1e1b4b',
+    '_font': "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
+    '_header_img': '',
+    '_logo_img': '',
+    '_footer': '',
+}
+
+
+def _collect_values(tpl_fields):
+    """Collect content field values + style values from the request form."""
+    fields = json.loads(tpl_fields)
+    values = {}
+    for f in fields:
+        values[f['name']] = request.form.get(f['name'], '')
+    # Inject style variables with defaults
+    for key, default in STYLE_DEFAULTS.items():
+        val = request.form.get(key, '').strip()
+        values[key] = val if val else default
+    return values
+
+
 @app.route('/templates/<slug>/preview', methods=['POST'])
 def template_preview(slug):
     db = get_db()
@@ -333,10 +358,7 @@ def template_preview(slug):
     if not tpl:
         return jsonify({'error': 'Template not found'}), 404
 
-    fields = json.loads(tpl['fields'])
-    values = {}
-    for f in fields:
-        values[f['name']] = request.form.get(f['name'], '')
+    values = _collect_values(tpl['fields'])
 
     from jinja2 import Template
     subject = Template(tpl['subject_template']).render(**values)
@@ -354,11 +376,7 @@ def template_send(slug):
         db.close()
         return redirect(url_for('templates_list'))
 
-    fields = json.loads(tpl['fields'])
-    values = {}
-    for f in fields:
-        values[f['name']] = request.form.get(f['name'], '')
-
+    values = _collect_values(tpl['fields'])
     target_group = request.form.get('target_group', 'all')
     test_email = request.form.get('test_email', '').strip()
 
