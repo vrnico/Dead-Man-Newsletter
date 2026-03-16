@@ -1,0 +1,1245 @@
+{% extends 'base.html' %}
+{% block title %}Setup — NewsLetterGo{% endblock %}
+{% block content %}
+
+<style>
+    .wizard-steps {
+        display: flex;
+        gap: 0;
+        margin-bottom: 30px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #334155;
+    }
+    .wizard-step {
+        flex: 1;
+        padding: 12px 16px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 600;
+        background: #1e293b;
+        color: #64748b;
+        border-right: 1px solid #334155;
+        position: relative;
+    }
+    .wizard-step:last-child { border-right: none; }
+    .wizard-step.active {
+        background: #38bdf8;
+        color: #0f172a;
+    }
+    .wizard-step.done {
+        background: #065f46;
+        color: #6ee7b7;
+    }
+    .wizard-step .step-num {
+        display: inline-block;
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        border-radius: 50%;
+        background: #334155;
+        color: #94a3b8;
+        font-size: 12px;
+        margin-right: 6px;
+        text-align: center;
+    }
+    .wizard-step.active .step-num { background: #0f172a; color: #38bdf8; }
+    .wizard-step.done .step-num { background: #059669; color: white; }
+
+    .provider-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 20px 0;
+    }
+    .provider-card {
+        background: #0f172a;
+        border: 2px solid #334155;
+        border-radius: 10px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-align: center;
+    }
+    .provider-card:hover {
+        border-color: #38bdf8;
+    }
+    .provider-card.selected {
+        border-color: #38bdf8;
+        background: #172554;
+    }
+    .provider-card input[type="radio"] { display: none; }
+    .provider-card .provider-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: #f1f5f9;
+        margin-bottom: 4px;
+    }
+    .provider-card .provider-detail {
+        font-size: 12px;
+        color: #64748b;
+    }
+
+    .guide-box {
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 24px;
+        margin: 16px 0;
+    }
+    .guide-box h3 {
+        color: #38bdf8;
+        margin-bottom: 12px;
+    }
+    .guide-box ol {
+        padding-left: 20px;
+        font-size: 14px;
+        line-height: 2.2;
+        color: #cbd5e1;
+    }
+    .guide-box ol li {
+        padding-left: 4px;
+    }
+    .guide-box ol li::marker {
+        color: #38bdf8;
+        font-weight: 700;
+    }
+    .guide-box code {
+        background: #1e293b;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 13px;
+        color: #fbbf24;
+    }
+    .guide-box .screenshot-placeholder {
+        background: #1e293b;
+        border: 1px dashed #475569;
+        border-radius: 6px;
+        padding: 16px;
+        text-align: center;
+        color: #64748b;
+        font-size: 13px;
+        margin: 8px 0;
+    }
+    .callout {
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 12px 0;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .callout-warning {
+        background: #78350f;
+        color: #fcd34d;
+        border: 1px solid #92400e;
+    }
+    .callout-info {
+        background: #1e3a5f;
+        color: #93c5fd;
+        border: 1px solid #1e40af;
+    }
+    .callout-success {
+        background: #064e3b;
+        color: #6ee7b7;
+        border: 1px solid #065f46;
+    }
+    .callout strong { color: inherit; }
+
+    .test-result {
+        margin: 6px 0;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .test-result.pass { background: #064e3b; color: #6ee7b7; }
+    .test-result.fail { background: #7f1d1d; color: #fca5a5; }
+    .test-result.pending { background: #1e293b; color: #94a3b8; }
+    .test-result .icon { font-size: 16px; }
+
+    .custom-fields { display: none; margin-top: 12px; }
+    .custom-fields.visible { display: block; }
+
+    .guide-tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid #334155;
+        margin-bottom: 0;
+        flex-wrap: wrap;
+    }
+    .guide-tab {
+        padding: 10px 18px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #64748b;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.15s;
+        background: none;
+        border-top: none;
+        border-left: none;
+        border-right: none;
+    }
+    .guide-tab:hover { color: #cbd5e1; }
+    .guide-tab.active {
+        color: #38bdf8;
+        border-bottom-color: #38bdf8;
+    }
+    .guide-tab-content {
+        display: none;
+    }
+    .guide-tab-content.active {
+        display: block;
+    }
+
+    .checklist-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid #1e293b;
+        font-size: 14px;
+        color: #cbd5e1;
+    }
+    .checklist-item:last-child { border-bottom: none; }
+    .checklist-item input[type="checkbox"] {
+        width: auto;
+        margin-top: 2px;
+        accent-color: #38bdf8;
+    }
+</style>
+
+<!-- WIZARD PROGRESS BAR -->
+{% set steps_list = ['welcome', 'provider', 'provider-guide', 'credentials', 'test-connection', 'test-email', 'done'] %}
+{% set step_labels = {'welcome': 'Welcome', 'provider': 'Provider', 'provider-guide': 'Setup Guide', 'credentials': 'Credentials', 'test-connection': 'Test Connection', 'test-email': 'Test Email', 'done': 'Done'} %}
+{% set current_idx = steps_list.index(step) if step in steps_list else 0 %}
+
+<div class="wizard-steps">
+    {% for s in steps_list %}
+    {% set idx = loop.index0 %}
+    <div class="wizard-step {% if s == step %}active{% elif idx < current_idx %}done{% endif %}">
+        <span class="step-num">{% if idx < current_idx %}&#10003;{% else %}{{ loop.index }}{% endif %}</span>
+        {{ step_labels[s] }}
+    </div>
+    {% endfor %}
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STEP 1: WELCOME -->
+<!-- ============================================================ -->
+{% if step == 'welcome' %}
+<div class="card" style="text-align:center;padding:48px;">
+    <h1 style="font-size:32px;margin-bottom:8px;">Welcome to NewsLetterGo</h1>
+    <p style="font-size:16px;color:#94a3b8;max-width:500px;margin:0 auto 30px;">
+        Let's get your email set up. This wizard will walk you through connecting
+        your email account so you can start sending newsletters.
+    </p>
+
+    <div class="callout callout-info" style="max-width:500px;margin:0 auto 24px;text-align:left;">
+        <strong>What you'll need:</strong><br>
+        &bull; An email account (Gmail, Outlook, Yahoo, etc.)<br>
+        &bull; About 5 minutes to follow the setup steps<br>
+        &bull; No credit card or paid services required
+    </div>
+
+    <div class="callout callout-warning" style="max-width:500px;margin:0 auto 24px;text-align:left;">
+        <strong>Important:</strong> Most email providers require you to create an "App Password"
+        instead of using your regular login password. The guide will walk you through this.
+    </div>
+
+    <a href="{{ url_for('setup', step='provider') }}" class="btn btn-primary" style="font-size:16px;padding:14px 36px;">
+        Let's Get Started
+    </a>
+</div>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 2: CHOOSE PROVIDER -->
+<!-- ============================================================ -->
+{% if step == 'provider' %}
+<h1>Choose Your Email Provider</h1>
+<p class="text-muted" style="margin-bottom:8px;">Which email service do you want to send from? Pick the one you already have an account with.</p>
+
+<form method="POST" action="{{ url_for('setup_save_provider') }}" id="providerForm">
+    <div class="provider-grid">
+        <label class="provider-card" onclick="selectProvider(this, 'gmail')">
+            <input type="radio" name="provider" value="gmail">
+            <div class="provider-name">Gmail</div>
+            <div class="provider-detail">500/day free &bull; Most popular</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'outlook')">
+            <input type="radio" name="provider" value="outlook">
+            <div class="provider-name">Outlook / Hotmail</div>
+            <div class="provider-detail">300/day free</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'yahoo')">
+            <input type="radio" name="provider" value="yahoo">
+            <div class="provider-name">Yahoo Mail</div>
+            <div class="provider-detail">500/day free</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'zoho')">
+            <input type="radio" name="provider" value="zoho">
+            <div class="provider-name">Zoho Mail</div>
+            <div class="provider-detail">50/day free tier</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'protonmail')">
+            <input type="radio" name="provider" value="protonmail">
+            <div class="provider-name">ProtonMail</div>
+            <div class="provider-detail">Needs Bridge app</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'tuta')">
+            <input type="radio" name="provider" value="tuta">
+            <div class="provider-name">Tuta (Tutanota)</div>
+            <div class="provider-detail">No SMTP &mdash; see guide</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'brevo')">
+            <input type="radio" name="provider" value="brevo">
+            <div class="provider-name">Brevo (Sendinblue)</div>
+            <div class="provider-detail">300/day free &bull; Best for volume</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'mailgun')">
+            <input type="radio" name="provider" value="mailgun">
+            <div class="provider-name">Mailgun</div>
+            <div class="provider-detail">100/day free &bull; Developer-oriented</div>
+        </label>
+        <label class="provider-card" onclick="selectProvider(this, 'custom')">
+            <input type="radio" name="provider" value="custom">
+            <div class="provider-name">Custom SMTP</div>
+            <div class="provider-detail">Any SMTP server</div>
+        </label>
+    </div>
+
+    <div class="custom-fields" id="customFields">
+        <div class="card">
+            <h3 class="mb-8">Custom SMTP Settings</h3>
+            <div class="form-group">
+                <label>SMTP Host</label>
+                <input type="text" name="custom_host" placeholder="smtp.example.com">
+            </div>
+            <div class="form-group">
+                <label>SMTP Port</label>
+                <input type="text" name="custom_port" value="587" placeholder="587">
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:20px;">
+        <a href="{{ url_for('setup', step='welcome') }}" class="btn btn-secondary">Back</a>
+        <button type="submit" class="btn btn-primary" id="providerNext" disabled>Next: Setup Guide</button>
+    </div>
+</form>
+
+<script>
+let selectedProvider = null;
+function selectProvider(el, provider) {
+    document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedProvider = provider;
+    document.getElementById('providerNext').disabled = false;
+    document.getElementById('customFields').classList.toggle('visible', provider === 'custom');
+}
+</script>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 3: PROVIDER-SPECIFIC SETUP GUIDE (TABBED) -->
+<!-- ============================================================ -->
+{% if step == 'provider-guide' %}
+{% set host = env.get('SMTP_HOST', '') %}
+
+<h1>Email Provider Setup Guide</h1>
+<p class="text-muted" style="margin-bottom:16px;">
+    Follow the instructions for your provider below. All guides are available — click the tabs to switch between them.
+    Check off each step as you complete it.
+</p>
+
+{% set active_tab = 'gmail' %}
+{% if 'outlook' in host %}{% set active_tab = 'outlook' %}{% endif %}
+{% if 'yahoo' in host %}{% set active_tab = 'yahoo' %}{% endif %}
+{% if 'zoho' in host %}{% set active_tab = 'zoho' %}{% endif %}
+{% if host == '127.0.0.1' %}{% set active_tab = 'protonmail' %}{% endif %}
+{% if 'tutanota' in host %}{% set active_tab = 'tuta' %}{% endif %}
+{% if 'brevo' in host %}{% set active_tab = 'brevo' %}{% endif %}
+{% if 'mailgun' in host %}{% set active_tab = 'mailgun' %}{% endif %}
+
+<div class="guide-tabs">
+    <button class="guide-tab {% if active_tab == 'gmail' %}active{% endif %}" onclick="switchTab('gmail')">Gmail</button>
+    <button class="guide-tab {% if active_tab == 'outlook' %}active{% endif %}" onclick="switchTab('outlook')">Outlook</button>
+    <button class="guide-tab {% if active_tab == 'yahoo' %}active{% endif %}" onclick="switchTab('yahoo')">Yahoo</button>
+    <button class="guide-tab {% if active_tab == 'zoho' %}active{% endif %}" onclick="switchTab('zoho')">Zoho</button>
+    <button class="guide-tab {% if active_tab == 'protonmail' %}active{% endif %}" onclick="switchTab('protonmail')">ProtonMail</button>
+    <button class="guide-tab {% if active_tab == 'tuta' %}active{% endif %}" onclick="switchTab('tuta')">Tuta</button>
+    <button class="guide-tab {% if active_tab == 'brevo' %}active{% endif %}" onclick="switchTab('brevo')">Brevo</button>
+    <button class="guide-tab {% if active_tab == 'mailgun' %}active{% endif %}" onclick="switchTab('mailgun')">Mailgun</button>
+    <button class="guide-tab {% if active_tab == 'custom' %}active{% endif %}" onclick="switchTab('custom')">Custom</button>
+</div>
+
+<!-- ======== GMAIL TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'gmail' %}active{% endif %}" id="tab-gmail">
+<div class="guide-box">
+    <h3>Gmail — App Password Setup</h3>
+    <div class="callout callout-warning">
+        <strong>Why can't I just use my regular Gmail password?</strong><br>
+        Google blocks "less secure" logins. You need to create a special App Password
+        that's just for this newsletter app. Your regular password stays safe.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="g1">
+        <label for="g1">
+            <strong>1. Make sure 2-Step Verification is ON</strong><br>
+            Open <code>myaccount.google.com/security</code> in your browser.
+            Scroll to "How you sign in to Google" and look for <strong>2-Step Verification</strong>.
+            If it says "Off", click it and follow the prompts to turn it on.
+            This is required before you can create an App Password.
+        </label>
+    </div>
+
+    <div class="callout callout-info">
+        <strong>Already have 2-Step Verification on?</strong> Great, skip to step 2.
+        If you just enabled it, you may need to wait a few minutes before App Passwords become available.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="g2">
+        <label for="g2">
+            <strong>2. Go to the App Passwords page</strong><br>
+            Open <code>myaccount.google.com/apppasswords</code> in your browser.
+            You may need to sign in again. If you get a "page not found" error,
+            it means 2-Step Verification isn't fully enabled yet — go back to step 1.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="g3">
+        <label for="g3">
+            <strong>3. Create a new App Password</strong><br>
+            In the "App name" field, type <code>NewsLetterGo</code> (or anything you'll recognize).
+            Click <strong>Create</strong>.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="g4">
+        <label for="g4">
+            <strong>4. Copy the 16-character password</strong><br>
+            Google will show you a password that looks like <code>abcd efgh ijkl mnop</code>.
+            <strong>Copy it now</strong> — you won't be able to see it again.
+            You'll paste it in the next step. Spaces don't matter.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>That's it for Gmail!</strong> You now have an App Password.
+        Click "Next" below to enter your credentials.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp.gmail.com</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your full Gmail address</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>The 16-char App Password</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>500 emails/day (free)</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== OUTLOOK TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'outlook' %}active{% endif %}" id="tab-outlook">
+<div class="guide-box">
+    <h3>Outlook / Hotmail — SMTP Setup</h3>
+
+    <div class="callout callout-info">
+        <strong>Good news:</strong> Outlook is simpler than Gmail. In most cases you can use your
+        regular password. If you have 2-Factor Authentication enabled, you'll need an App Password.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="o1">
+        <label for="o1">
+            <strong>1. Check if SMTP access is enabled</strong><br>
+            Sign in to Outlook on the web. Go to <strong>Settings</strong> (gear icon)
+            &rarr; <strong>Mail</strong> &rarr; <strong>Sync email</strong>.
+            Under "POP and IMAP", make sure <strong>"Let devices and apps use POP"</strong> is set to <strong>Yes</strong>.
+            Click <strong>Save</strong>.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="o2">
+        <label for="o2">
+            <strong>2. If you have 2FA enabled: create an App Password</strong><br>
+            Go to <code>account.microsoft.com/security</code> &rarr; <strong>Advanced security options</strong>
+            &rarr; <strong>App passwords</strong> &rarr; <strong>Create a new app password</strong>.
+            Copy the generated password.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="o3">
+        <label for="o3">
+            <strong>3. If you DON'T have 2FA: use your regular password</strong><br>
+            You can use your normal Outlook login password directly. Easy!
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Done!</strong> Click "Next" to enter your email and password.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp-mail.outlook.com</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your full Outlook/Hotmail address</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>Regular password or App Password</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>~300 emails/day</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== YAHOO TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'yahoo' %}active{% endif %}" id="tab-yahoo">
+<div class="guide-box">
+    <h3>Yahoo Mail — App Password Setup</h3>
+
+    <div class="callout callout-warning">
+        <strong>Yahoo requires an App Password.</strong> Your regular Yahoo password won't work for SMTP.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="y1">
+        <label for="y1">
+            <strong>1. Enable 2-Step Verification</strong><br>
+            Go to <code>login.yahoo.com/account/security</code>.
+            Turn on <strong>Two-step verification</strong> if it's not already on.
+            Follow the prompts (phone number or authenticator app).
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="y2">
+        <label for="y2">
+            <strong>2. Generate an App Password</strong><br>
+            On the same security page, find <strong>"Generate app password"</strong> or
+            <strong>"Other ways to sign in" &rarr; "App passwords"</strong>.
+            Select <strong>"Other app"</strong>, type <code>NewsLetterGo</code>, and click <strong>Generate</strong>.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="y3">
+        <label for="y3">
+            <strong>3. Copy the password</strong><br>
+            Yahoo will display a password. Copy it — you'll paste it in the next step.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>All set!</strong> Click "Next" to enter your Yahoo email and the App Password.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp.mail.yahoo.com</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your full Yahoo email address</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>The App Password you generated</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>500 emails/day</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== ZOHO TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'zoho' %}active{% endif %}" id="tab-zoho">
+<div class="guide-box">
+    <h3>Zoho Mail — SMTP Setup</h3>
+
+    <div class="callout callout-info">
+        <strong>Free tier limit:</strong> Zoho's free plan allows ~50 emails/day via SMTP.
+        For more, consider their paid plan or a provider like Brevo (300/day free).
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="z1">
+        <label for="z1">
+            <strong>1. Enable SMTP access</strong><br>
+            Sign in to Zoho Mail. Go to <strong>Settings</strong> &rarr; <strong>Mail Accounts</strong> &rarr;
+            your account &rarr; <strong>IMAP Access</strong>. Turn on <strong>"IMAP Access"</strong>
+            (this also enables SMTP).
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="z2">
+        <label for="z2">
+            <strong>2. If you have 2FA enabled: generate an App Password</strong><br>
+            Go to <code>accounts.zoho.com/home</code> &rarr; <strong>Security</strong> &rarr;
+            <strong>Application-Specific Passwords</strong> &rarr; <strong>Generate</strong>.
+            Name it <code>NewsLetterGo</code> and copy the password.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="z3">
+        <label for="z3">
+            <strong>3. No 2FA? Use your regular password</strong><br>
+            Without 2FA, your normal Zoho password works for SMTP.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Ready!</strong> Click "Next" to enter your credentials.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp.zoho.com</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your full Zoho email address</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>Regular password or App Password</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>~50 emails/day (free tier)</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== PROTONMAIL TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'protonmail' %}active{% endif %}" id="tab-protonmail">
+<div class="guide-box">
+    <h3>ProtonMail — Bridge Setup</h3>
+
+    <div class="callout callout-warning">
+        <strong>ProtonMail requires a desktop app called "ProtonMail Bridge".</strong><br>
+        Bridge runs on your computer and acts as a local SMTP server.
+        The newsletter app connects to Bridge, and Bridge handles encryption.
+        You must have Bridge running whenever you want to send emails.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="p1">
+        <label for="p1">
+            <strong>1. Download and install ProtonMail Bridge</strong><br>
+            Get it from the official ProtonMail website. Install it and sign in with your ProtonMail account.
+            <strong>Note:</strong> Bridge requires a paid ProtonMail plan (Plus, Professional, or Visionary).
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="p2">
+        <label for="p2">
+            <strong>2. Get your Bridge SMTP credentials</strong><br>
+            In the Bridge app, click on your account &rarr; <strong>Mailbox configuration</strong>.
+            Note the <strong>SMTP server</strong> (usually <code>127.0.0.1</code>),
+            <strong>port</strong> (usually <code>1025</code>), and the <strong>password</strong>
+            that Bridge generated. This is NOT your ProtonMail login password.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="p3">
+        <label for="p3">
+            <strong>3. Keep Bridge running</strong><br>
+            Bridge must be running in the background whenever you send newsletters.
+            Consider setting it to start on boot.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Ready!</strong> Click "Next" to enter the email and password shown in Bridge.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>127.0.0.1</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>1025</code> (check Bridge)</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your ProtonMail address</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>Bridge-generated password</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Requirement</td><td>Paid ProtonMail plan + Bridge running</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== TUTA TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'tuta' %}active{% endif %}" id="tab-tuta">
+<div class="guide-box">
+    <h3>Tuta (Tutanota) — Important Limitations</h3>
+
+    <div class="callout callout-warning">
+        <strong>Tuta does NOT support standard SMTP.</strong><br>
+        Unlike most email providers, Tuta uses its own proprietary encryption system
+        and does not offer SMTP access — not even with a paid plan.
+        This means you cannot directly use Tuta as the sending server for this app.
+    </div>
+
+    <h3 style="margin-top:20px;">Your Options</h3>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="t1">
+        <label for="t1">
+            <strong>Option A: Use a different provider for sending</strong><br>
+            The easiest path. Sign up for a free Gmail, Zoho, or Brevo account and use that
+            as your sending address. You can still use Tuta as your daily email.
+            Many newsletter creators use a separate "sending" address anyway.<br>
+            <em>Recommended: Create a free Gmail or use Brevo (300/day free, best deliverability).</em>
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="t2">
+        <label for="t2">
+            <strong>Option B: Use Tuta's desktop client + a relay</strong><br>
+            If you absolutely must send "from" your Tuta address, you'd need to set up
+            an SMTP relay service (like Brevo or Mailgun) and configure it to send on behalf
+            of your Tuta address. You'd verify your Tuta address as a sender in their dashboard.
+            The emails technically go through the relay, but appear to come from your Tuta address.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="t3">
+        <label for="t3">
+            <strong>Option C: Monitor the Tuta Desktop Client API</strong><br>
+            Tuta has been developing a desktop client with potential API access.
+            Check their blog/roadmap for updates — SMTP or API support may come in the future.
+        </label>
+    </div>
+
+    <div class="callout callout-info">
+        <strong>Our recommendation:</strong> Go with <strong>Option A</strong>.
+        Click the <strong>Gmail</strong> or <strong>Brevo</strong> tab above and follow that guide instead.
+        You can still list your Tuta address in your newsletter as a reply-to contact if you want.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Support</td><td>Not available</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Workaround</td><td>Use Gmail, Zoho, or Brevo instead</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Why?</td><td>Tuta uses proprietary encryption, no SMTP</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== BREVO TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'brevo' %}active{% endif %}" id="tab-brevo">
+<div class="guide-box">
+    <h3>Brevo (formerly Sendinblue) — SMTP Setup</h3>
+
+    <div class="callout callout-info">
+        <strong>Why Brevo?</strong> It's the best free option for higher volume — 300 emails/day
+        on the free plan, and your emails are less likely to land in spam since
+        Brevo manages sender reputation. Great if you don't want to use a personal email account.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="b1">
+        <label for="b1">
+            <strong>1. Create a free Brevo account</strong><br>
+            Sign up at <strong>brevo.com</strong>. Confirm your email address.
+            No credit card required.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="b2">
+        <label for="b2">
+            <strong>2. Get your SMTP key</strong><br>
+            After signing in, go to <strong>Settings</strong> (top right) &rarr;
+            <strong>SMTP & API</strong> &rarr; <strong>SMTP</strong> tab.
+            Your login email is your SMTP username.
+            Click <strong>"Generate a new SMTP key"</strong> and copy it.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="b3">
+        <label for="b3">
+            <strong>3. Verify your sender address</strong><br>
+            Go to <strong>Senders & IP</strong> &rarr; <strong>Senders</strong> &rarr; <strong>Add a sender</strong>.
+            Add the email address you want to send from. Brevo will send you a confirmation link — click it.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>All set!</strong> Click "Next". Use your Brevo login email as the username
+        and the SMTP key as the password.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp-relay.brevo.com</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td>Your Brevo login email</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>SMTP key (not login password)</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>300 emails/day (free)</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== MAILGUN TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'mailgun' %}active{% endif %}" id="tab-mailgun">
+<div class="guide-box">
+    <h3>Mailgun — SMTP Setup</h3>
+
+    <div class="callout callout-info">
+        <strong>Mailgun</strong> is developer-oriented and offers 100 emails/day free.
+        On the sandbox domain, you can only send to verified recipient addresses.
+        Add your own domain for unrestricted sending.
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="m1">
+        <label for="m1">
+            <strong>1. Create a Mailgun account</strong><br>
+            Sign up at <strong>mailgun.com</strong>. You'll get a sandbox domain to start with.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="m2">
+        <label for="m2">
+            <strong>2. Get SMTP credentials</strong><br>
+            Go to <strong>Sending</strong> &rarr; <strong>Domain settings</strong> &rarr;
+            <strong>SMTP credentials</strong>. Your username looks like
+            <code>postmaster@sandbox123.mailgun.org</code>. Set or reset the password.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="m3">
+        <label for="m3">
+            <strong>3. Sandbox limitation: add authorized recipients</strong><br>
+            With the sandbox domain, you can only send to <strong>verified recipients</strong>.
+            Go to <strong>Sending</strong> &rarr; <strong>Overview</strong> &rarr;
+            <strong>"Authorized Recipients"</strong> and add each email address you want to send to.
+            They'll each get a verification email to click.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Ready!</strong> Click "Next" to enter your Mailgun SMTP credentials.
+    </div>
+
+    <table style="margin-top:16px;">
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Host</td><td><code>smtp.mailgun.org</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">SMTP Port</td><td><code>587</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Username</td><td><code>postmaster@your-domain.mailgun.org</code></td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Password</td><td>SMTP password from dashboard</td></tr>
+        <tr><td style="font-weight:bold;padding-right:20px;">Daily limit</td><td>100 emails/day (free, sandbox)</td></tr>
+    </table>
+</div>
+</div>
+
+<!-- ======== CUSTOM TAB ======== -->
+<div class="guide-tab-content {% if active_tab == 'custom' %}active{% endif %}" id="tab-custom">
+<div class="guide-box">
+    <h3>Custom SMTP Server</h3>
+
+    <div class="callout callout-info">
+        <strong>You'll need these details from your email provider:</strong><br>
+        &bull; SMTP server hostname{% if host %} (currently: <code>{{ host }}</code>){% endif %}<br>
+        &bull; SMTP port{% if env.get('SMTP_PORT') %} (currently: <code>{{ env.get('SMTP_PORT') }}</code>){% endif %}<br>
+        &bull; Your email address / username<br>
+        &bull; Your password or app-specific password
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="c1">
+        <label for="c1">
+            <strong>1. Find your provider's SMTP settings</strong><br>
+            Search for "<em>[your provider] SMTP settings</em>" or check their help docs.
+            Most providers use port <code>587</code> with STARTTLS.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="c2">
+        <label for="c2">
+            <strong>2. Check if you need an App Password</strong><br>
+            If your provider uses 2-Factor Authentication, you likely need to generate an App Password
+            instead of using your regular password.
+        </label>
+    </div>
+
+    <div class="checklist-item">
+        <input type="checkbox" id="c3">
+        <label for="c3">
+            <strong>3. Go back and set the correct host/port</strong><br>
+            If you haven't already, go back to the Provider step and choose "Custom SMTP"
+            to enter your server's hostname and port.
+        </label>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Ready!</strong> Click "Next" to enter your credentials. We'll test the connection right after.
+    </div>
+</div>
+</div>
+
+<div style="display:flex;gap:12px;margin-top:20px;">
+    <a href="{{ url_for('setup', step='provider') }}" class="btn btn-secondary">Back</a>
+    <a href="{{ url_for('setup', step='credentials') }}" class="btn btn-primary">Next: Enter Credentials</a>
+</div>
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.guide-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.guide-tab-content').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+</script>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 4: ENTER CREDENTIALS -->
+<!-- ============================================================ -->
+{% if step == 'credentials' %}
+<h1>Enter Your Credentials</h1>
+<p class="text-muted" style="margin-bottom:8px;">
+    Enter the email and password (or App Password) from the previous step.
+    These are stored locally in your <code>.env</code> file — never sent anywhere else.
+</p>
+
+<form method="POST" action="{{ url_for('setup_save_credentials') }}">
+    <div class="card" style="max-width:520px;">
+        <div class="form-group">
+            <label>Your Email Address / SMTP Username</label>
+            <input type="text" name="smtp_user" value="{{ env.get('SMTP_USER', '') }}"
+                   placeholder="you@gmail.com" required>
+            <p class="text-sm text-muted" style="margin-top:4px;">
+                For most providers, this is your email address.
+                For Brevo/Mailgun, it may be different — use what they gave you.
+            </p>
+        </div>
+        <div class="form-group">
+            <label>Password / App Password</label>
+            <input type="text" name="smtp_password"
+                   placeholder="Enter your app password" required>
+            <p class="text-sm text-muted" style="margin-top:4px;">
+                Use the App Password you generated, NOT your regular login password
+                (unless the guide said otherwise).
+            </p>
+        </div>
+        <div class="form-group">
+            <label>Your Display Name</label>
+            <input type="text" name="from_name" value="{{ env.get('FROM_NAME', '') }}"
+                   placeholder="Jane Doe">
+            <p class="text-sm text-muted" style="margin-top:4px;">
+                This is the name recipients see in their inbox (e.g. "Jane Doe" or "Jane's Newsletter").
+            </p>
+        </div>
+        <div class="form-group">
+            <label>From Email (leave blank to use same as above)</label>
+            <input type="email" name="from_email" value="{{ env.get('FROM_EMAIL', '') }}"
+                   placeholder="you@gmail.com">
+        </div>
+        <div style="display:flex;gap:12px;">
+            <a href="{{ url_for('setup', step='provider-guide') }}" class="btn btn-secondary">Back</a>
+            <button type="submit" class="btn btn-primary">Save & Test Connection</button>
+        </div>
+    </div>
+</form>
+
+<div class="callout callout-info" style="max-width:520px;margin-top:16px;">
+    <strong>Where is this stored?</strong><br>
+    Your credentials are saved to the <code>.env</code> file in the app directory.
+    This file is in <code>.gitignore</code> so it won't be pushed to GitHub.
+    Your password never leaves your machine (except when connecting to your mail server to send).
+</div>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 5: TEST CONNECTION -->
+<!-- ============================================================ -->
+{% if step == 'test-connection' %}
+<h1>Test Your Connection</h1>
+<p class="text-muted" style="margin-bottom:8px;">
+    Let's verify that the app can connect to your email provider and log in.
+    This doesn't send any emails — it just checks the connection.
+</p>
+
+<div class="card" style="max-width:560px;">
+    <div class="callout callout-info" style="margin-top:0;">
+        <strong>Current settings:</strong><br>
+        Server: <code>{{ env.get('SMTP_HOST', '?') }}:{{ env.get('SMTP_PORT', '?') }}</code><br>
+        User: <code>{{ env.get('SMTP_USER', '?') }}</code>
+    </div>
+
+    <div id="testResults" style="margin:16px 0;">
+        <div class="test-result pending" id="tr-connect">
+            <span class="icon">&#9898;</span>
+            <span>Connect to mail server</span>
+        </div>
+        <div class="test-result pending" id="tr-tls">
+            <span class="icon">&#9898;</span>
+            <span>STARTTLS encryption</span>
+        </div>
+        <div class="test-result pending" id="tr-auth">
+            <span class="icon">&#9898;</span>
+            <span>Authenticate with credentials</span>
+        </div>
+    </div>
+
+    <div id="testMessage" style="display:none;" class="callout" ></div>
+
+    <div style="display:flex;gap:12px;">
+        <button class="btn btn-primary" id="runTestBtn" onclick="runConnectionTest()">Run Connection Test</button>
+        <a href="{{ url_for('setup', step='credentials') }}" class="btn btn-secondary">Back to Credentials</a>
+    </div>
+
+    <div id="nextStep" style="display:none;margin-top:16px;">
+        <a href="{{ url_for('setup', step='test-email') }}" class="btn btn-success" style="font-size:15px;padding:12px 28px;">
+            Connection works! Next: Send a Test Email
+        </a>
+    </div>
+</div>
+
+<script>
+async function runConnectionTest() {
+    const btn = document.getElementById('runTestBtn');
+    btn.disabled = true;
+    btn.textContent = 'Testing...';
+
+    // Reset
+    document.querySelectorAll('.test-result').forEach(el => {
+        el.className = 'test-result pending';
+        el.querySelector('.icon').innerHTML = '&#9898;';
+    });
+    document.getElementById('testMessage').style.display = 'none';
+    document.getElementById('nextStep').style.display = 'none';
+
+    try {
+        const resp = await fetch('{{ url_for("setup_test_connection") }}', { method: 'POST' });
+        const data = await resp.json();
+
+        const ids = ['tr-connect', 'tr-tls', 'tr-auth'];
+        data.steps.forEach((step, i) => {
+            const el = document.getElementById(ids[i]);
+            if (step.ok) {
+                el.className = 'test-result pass';
+                el.querySelector('.icon').innerHTML = '&#10004;';
+                el.querySelector('span:last-child').textContent = step.name;
+            } else {
+                el.className = 'test-result fail';
+                el.querySelector('.icon').innerHTML = '&#10008;';
+                el.querySelector('span:last-child').innerHTML = step.name + '<br><small>' + (step.error || '') + '</small>';
+            }
+        });
+
+        const msg = document.getElementById('testMessage');
+        if (data.success) {
+            msg.className = 'callout callout-success';
+            msg.innerHTML = '<strong>All checks passed!</strong> Your email is configured correctly.';
+            msg.style.display = 'block';
+            document.getElementById('nextStep').style.display = 'block';
+        } else {
+            msg.className = 'callout callout-warning';
+            msg.innerHTML = '<strong>Something went wrong.</strong> Check the error above, fix the issue, and try again. You can go back to change your credentials.';
+            msg.style.display = 'block';
+        }
+    } catch (e) {
+        const msg = document.getElementById('testMessage');
+        msg.className = 'callout callout-warning';
+        msg.innerHTML = '<strong>Request failed:</strong> ' + e.message;
+        msg.style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Run Connection Test';
+}
+</script>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 6: SEND TEST EMAIL -->
+<!-- ============================================================ -->
+{% if step == 'test-email' %}
+<h1>Send a Test Email</h1>
+<p class="text-muted" style="margin-bottom:8px;">
+    Almost done! Let's send a real email to make sure everything works end-to-end.
+    Enter your own email address to receive the test.
+</p>
+
+<div class="card" style="max-width:520px;">
+    <div class="form-group">
+        <label>Send test email to:</label>
+        <input type="email" id="testEmailAddr" placeholder="you@gmail.com"
+               value="{{ env.get('SMTP_USER', '') }}">
+        <p class="text-sm text-muted" style="margin-top:4px;">
+            Use your own email so you can check that it arrives.
+        </p>
+    </div>
+
+    <button class="btn btn-primary" id="sendTestBtn" onclick="sendTestEmail()">Send Test Email</button>
+
+    <div id="sendResult" style="display:none;margin-top:16px;" class="callout"></div>
+
+    <div id="checkInbox" style="display:none;margin-top:16px;">
+        <div class="callout callout-info">
+            <strong>Now check your inbox!</strong><br>
+            Look for an email with the subject "NewsLetterGo — Test Email".
+            If you don't see it within a minute, check your <strong>Spam/Junk</strong> folder.
+        </div>
+
+        <div style="margin-top:16px;">
+            <p style="font-size:15px;color:#cbd5e1;margin-bottom:12px;">Did you receive the test email?</p>
+            <div style="display:flex;gap:12px;">
+                <a href="{{ url_for('setup', step='done') }}" class="btn btn-success">
+                    Yes, I got it!
+                </a>
+                <button class="btn btn-secondary" onclick="showTroubleshoot()">
+                    No, I didn't get it
+                </button>
+            </div>
+        </div>
+
+        <div id="troubleshoot" style="display:none;margin-top:16px;">
+            <div class="guide-box">
+                <h3>Troubleshooting</h3>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <label>
+                        <strong>Check your Spam/Junk folder</strong> — test emails often land there the first time.
+                    </label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <label>
+                        <strong>Wait 2-3 minutes</strong> — some providers have a short delay.
+                    </label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <label>
+                        <strong>Check the "From" address</strong> — make sure the email you entered in credentials
+                        is a real, verified address on your provider.
+                    </label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <label>
+                        <strong>Try sending to a different email</strong> — if you're sending Gmail-to-Gmail,
+                        try sending to an Outlook or Yahoo address instead.
+                    </label>
+                </div>
+                <div class="checklist-item">
+                    <input type="checkbox">
+                    <label>
+                        <strong>For Brevo/Mailgun:</strong> make sure your "From" address is verified in their dashboard.
+                    </label>
+                </div>
+                <div style="margin-top:12px;">
+                    <a href="{{ url_for('setup', step='credentials') }}" class="btn btn-secondary btn-sm">Back to Credentials</a>
+                    <a href="{{ url_for('setup', step='test-connection') }}" class="btn btn-secondary btn-sm">Re-run Connection Test</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div style="margin-top:16px;">
+    <a href="{{ url_for('setup', step='test-connection') }}" class="btn btn-secondary">Back</a>
+</div>
+
+<script>
+async function sendTestEmail() {
+    const btn = document.getElementById('sendTestBtn');
+    const addr = document.getElementById('testEmailAddr').value.trim();
+    if (!addr) { alert('Enter an email address'); return; }
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    document.getElementById('sendResult').style.display = 'none';
+    document.getElementById('checkInbox').style.display = 'none';
+
+    const formData = new FormData();
+    formData.append('test_email', addr);
+
+    try {
+        const resp = await fetch('{{ url_for("setup_send_test") }}', { method: 'POST', body: formData });
+        const data = await resp.json();
+
+        const result = document.getElementById('sendResult');
+        if (data.success) {
+            result.className = 'callout callout-success';
+            result.innerHTML = '<strong>Email sent!</strong> Check your inbox at <strong>' + addr + '</strong>.';
+            document.getElementById('checkInbox').style.display = 'block';
+        } else {
+            result.className = 'callout callout-warning';
+            result.innerHTML = '<strong>Failed to send:</strong> ' + (data.error || 'Unknown error');
+        }
+        result.style.display = 'block';
+    } catch (e) {
+        const result = document.getElementById('sendResult');
+        result.className = 'callout callout-warning';
+        result.innerHTML = '<strong>Request failed:</strong> ' + e.message;
+        result.style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Send Test Email';
+}
+
+function showTroubleshoot() {
+    document.getElementById('troubleshoot').style.display = 'block';
+}
+</script>
+{% endif %}
+
+
+<!-- ============================================================ -->
+<!-- STEP 7: DONE -->
+<!-- ============================================================ -->
+{% if step == 'done' %}
+<div class="card" style="text-align:center;padding:48px;">
+    <div style="font-size:48px;margin-bottom:16px;">&#10003;</div>
+    <h1 style="font-size:32px;color:#6ee7b7;margin-bottom:8px;">You're All Set!</h1>
+    <p style="font-size:16px;color:#94a3b8;max-width:480px;margin:0 auto 30px;">
+        Your email is configured and working. Here's what to do next:
+    </p>
+
+    <div style="text-align:left;max-width:480px;margin:0 auto;">
+        <div class="checklist-item">
+            <span style="color:#38bdf8;font-weight:bold;font-size:18px;">1</span>
+            <label>
+                <strong>Add your contacts</strong><br>
+                Go to <a href="{{ url_for('contacts') }}">Contacts</a> and add the people you want to email.
+                Use groups (like "friends", "work", "emergency") to organize them.
+            </label>
+        </div>
+        <div class="checklist-item">
+            <span style="color:#38bdf8;font-weight:bold;font-size:18px;">2</span>
+            <label>
+                <strong>Choose a template and send</strong><br>
+                Go to <a href="{{ url_for('templates_list') }}">Templates</a>, pick one, fill in your content,
+                preview it, and send.
+            </label>
+        </div>
+        <div class="checklist-item">
+            <span style="color:#38bdf8;font-weight:bold;font-size:18px;">3</span>
+            <label>
+                <strong>Set up the Safety Switch (optional)</strong><br>
+                Going on a solo trip? Set up the <a href="{{ url_for('deadman') }}">Dead Man's Switch</a>
+                so your emergency contacts get alerted if you don't check in.
+            </label>
+        </div>
+    </div>
+
+    <div style="margin-top:30px;">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary" style="font-size:16px;padding:14px 36px;">
+            Go to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="callout callout-info" style="max-width:520px;margin:20px auto;">
+    <strong>Need to change your settings later?</strong><br>
+    You can always come back to this setup wizard from the "Setup" link in the navigation bar,
+    or edit the <code>.env</code> file directly.
+</div>
+{% endif %}
+
+{% endblock %}

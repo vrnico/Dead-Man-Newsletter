@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}{{ template['name'] }} — NewsLetterGo{% endblock %}
+{% block content %}
+<h1>{{ template['name'] }}</h1>
+<p class="text-muted mb-8">{{ template['description'] }}</p>
+
+<form id="emailForm" method="POST" action="{{ url_for('template_send', slug=template['slug']) }}">
+    <div class="grid grid-2">
+        <div>
+            <div class="card">
+                <h3 class="mb-8">Fill In Your Content</h3>
+                {% for field in fields %}
+                <div class="form-group">
+                    <label>{{ field['label'] }}</label>
+                    {% if field['type'] == 'textarea' %}
+                    <textarea name="{{ field['name'] }}" class="template-field" placeholder="{{ field['label'] }}"></textarea>
+                    {% else %}
+                    <input type="text" name="{{ field['name'] }}" class="template-field" placeholder="{{ field['label'] }}">
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="card">
+                <h3 class="mb-8">Send Options</h3>
+                <div class="form-group">
+                    <label>Send To Group</label>
+                    <select name="target_group">
+                        <option value="all">All Contacts</option>
+                        {% for group in groups %}
+                        <option value="{{ group }}">{{ group }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Or Send Test To (single email)</label>
+                    <input type="email" name="test_email" placeholder="test@example.com">
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="previewEmail()">Preview</button>
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('Send this email?')">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h3 class="mb-8">Preview</h3>
+                <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;">Subject will appear here...</div>
+                <div id="previewBody" class="preview-box">
+                    <p style="color:#999;text-align:center;padding:40px;">Fill in the fields and click Preview</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+async function previewEmail() {
+    const form = document.getElementById('emailForm');
+    const formData = new FormData(form);
+
+    const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
+        method: 'POST',
+        body: formData
+    });
+    const data = await resp.json();
+
+    document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
+    document.getElementById('previewBody').innerHTML = data.body;
+}
+</script>
+{% endblock %}

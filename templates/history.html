@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}History — NewsLetterGo{% endblock %}
+{% block content %}
+<h1>Send History</h1>
+
+{% if sends %}
+<div class="card">
+    <table>
+        <tr>
+            <th>Date</th>
+            <th>Template</th>
+            <th>Subject</th>
+            <th>Recipients</th>
+            <th>View</th>
+        </tr>
+        {% for send in sends %}
+        <tr>
+            <td class="text-sm">{{ send['sent_at'] }}</td>
+            <td><span class="badge badge-blue">{{ send['template_name'] }}</span></td>
+            <td>{{ send['subject'][:60] }}{% if send['subject']|length > 60 %}...{% endif %}</td>
+            <td>{{ send['recipient_count'] }}</td>
+            <td><a href="{{ url_for('history_detail', send_id=send['id']) }}" class="btn btn-secondary btn-sm">View</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% else %}
+<div class="card">
+    <p class="text-muted">No emails sent yet. <a href="{{ url_for('templates_list') }}">Choose a template</a> to get started!</p>
+</div>
+{% endif %}
+{% endblock %}

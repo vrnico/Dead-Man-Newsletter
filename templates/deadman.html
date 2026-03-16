@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Safety Switch — NewsLetterGo{% endblock %}
+{% block content %}
+<h1>Dead Man's Switch (Safety Alert)</h1>
+<p class="text-muted mb-8">
+    Going backpacking or on a solo trip? Set this up so that if you don't check in within a set time,
+    an emergency email gets sent to your contacts automatically.
+</p>
+
+<div class="grid grid-2">
+    <div>
+        <div class="card">
+            <h3 class="mb-8">Status</h3>
+            {% if switch['active'] %}
+            <p class="switch-active" style="font-size:24px;font-weight:700;">ACTIVE</p>
+            <p style="margin-top:8px;">
+                Last check-in: <strong>{{ switch['last_check_in'] }}</strong><br>
+                Interval: <strong>{{ switch['check_in_interval_hours'] }} hours</strong><br>
+                Alert group: <strong>{{ switch['recipient_group'] }}</strong>
+            </p>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <form method="POST" action="{{ url_for('deadman_checkin') }}">
+                    <button type="submit" class="btn btn-success">I'm OK — Check In</button>
+                </form>
+                <form method="POST" action="{{ url_for('deadman_trigger_check') }}">
+                    <button type="submit" class="btn btn-secondary btn-sm">Test Check</button>
+                </form>
+            </div>
+            {% else %}
+            <p class="switch-inactive" style="font-size:24px;font-weight:700;">INACTIVE</p>
+            <p class="text-muted" style="margin-top:8px;">Configure and activate below.</p>
+            {% endif %}
+        </div>
+
+        <div class="card">
+            <h3 class="mb-8">How It Works</h3>
+            <ol style="padding-left:20px;font-size:14px;line-height:2;color:#94a3b8;">
+                <li>Configure your trip details and emergency contacts below</li>
+                <li>Add contacts to the "<strong>emergency</strong>" group (or your chosen group)</li>
+                <li>Activate the switch before your trip</li>
+                <li>Check in regularly (click "I'm OK") within your interval</li>
+                <li>If you miss a check-in, the alert email fires automatically</li>
+                <li>The switch deactivates after firing (one-time alert)</li>
+            </ol>
+            <p class="text-sm text-muted mt-16">
+                The app checks every 15 minutes while running. For reliability on a real trip,
+                deploy this app to a server that stays online (see README).
+            </p>
+        </div>
+    </div>
+
+    <div>
+        <form method="POST" action="{{ url_for('deadman_update') }}">
+            <div class="card">
+                <h3 class="mb-8">Configuration</h3>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="active" value="1"
+                               {% if switch['active'] %}checked{% endif %}
+                               style="width:auto;margin-right:6px;">
+                        Activate Switch
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>Check-in Interval (hours)</label>
+                    <input type="number" name="check_in_interval_hours"
+                           value="{{ switch['check_in_interval_hours'] }}" min="1" max="720">
+                    <p class="text-sm text-muted">Alert fires if you don't check in within this many hours.</p>
+                </div>
+                <div class="form-group">
+                    <label>Recipient Group</label>
+                    <input type="text" name="recipient_group" value="{{ switch['recipient_group'] }}"
+                           placeholder="emergency">
+                    <p class="text-sm text-muted">Contacts in this group get the alert. Make sure you've added contacts to this group!</p>
+                </div>
+                <div class="form-group">
+                    <label>Alert Email Subject</label>
+                    <input type="text" name="subject" value="{{ switch['subject'] }}"
+                           placeholder="Emergency: I may need help">
+                </div>
+                <div class="form-group">
+                    <label>Trip Details (JSON for template, or plain text)</label>
+                    <textarea name="trip_details" rows="6" placeholder='{"traveler_name": "Your Name", "trip_name": "PCT Section A", "last_known_location": "Campo Trailhead", "trip_dates": "March 15-20", "itinerary": "Campo to Lake Morena", "gear_description": "Red backpack, blue jacket", "vehicle_info": "Silver Subaru at Campo lot", "emergency_contacts": "Mom: 555-1234", "instructions": "Call San Diego County Search & Rescue: 858-565-5200"}'>{{ switch['trip_details'] }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Fallback Alert Body (used if no template/trip details)</label>
+                    <textarea name="body" rows="3" placeholder="Plain text or HTML fallback message">{{ switch['body'] }}</textarea>
+                </div>
+                <button type="submit" class="btn btn-warning">Save Configuration</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Use the Dead Man's Switch email template for rich formatting -->
+<div class="card mt-16">
+    <h3>Want to customize the alert email?</h3>
+    <p class="text-muted">
+        The alert uses the "Dead Man's Switch" email template. You can
+        <a href="{{ url_for('template_detail', slug='deadman-switch') }}">preview it here</a>
+        to see what your contacts will receive. Fill in the Trip Details above as JSON matching the template fields.
+    </p>
+</div>
+{% endblock %}

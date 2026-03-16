@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}Contacts — NewsLetterGo{% endblock %}
+{% block content %}
+<div class="flex flex-between mb-8">
+    <h1>Contacts</h1>
+</div>
+
+<!-- Add Contact Form -->
+<div class="card">
+    <h3 class="mb-8">Add Contact</h3>
+    <form method="POST" action="{{ url_for('add_contact') }}" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:200px;">
+            <label>Email</label>
+            <input type="email" name="email" required placeholder="name@example.com">
+        </div>
+        <div style="flex:1;min-width:150px;">
+            <label>Name</label>
+            <input type="text" name="name" placeholder="John Doe">
+        </div>
+        <div style="flex:1;min-width:150px;">
+            <label>Groups (comma-separated)</label>
+            <input type="text" name="groups" placeholder="friends, emergency">
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<!-- Import -->
+<div class="card">
+    <h3 class="mb-8">Bulk Import</h3>
+    <form method="POST" action="{{ url_for('import_contacts') }}">
+        <div class="form-group">
+            <label>CSV Data (one per line: email, name, group1;group2)</label>
+            <textarea name="csv_data" rows="4" placeholder="alice@example.com, Alice Smith, friends;emergency
+bob@example.com, Bob Jones, work"></textarea>
+        </div>
+        <button type="submit" class="btn btn-secondary">Import</button>
+    </form>
+</div>
+
+<!-- Contacts Table -->
+<div class="card">
+    <h3 class="mb-8">All Contacts ({{ contacts|length }})</h3>
+    {% if contacts %}
+    <table>
+        <tr>
+            <th>Email</th>
+            <th>Name</th>
+            <th>Groups</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        {% for c in contacts %}
+        <tr id="contact-{{ c['id'] }}">
+            <td>{{ c['email'] }}</td>
+            <td>{{ c['name'] }}</td>
+            <td>
+                {% for g in c['groups']|fromjson %}
+                <span class="badge badge-gray">{{ g }}</span>
+                {% endfor %}
+            </td>
+            <td>
+                {% if c['unsubscribed'] %}
+                <span class="badge badge-red">Unsubscribed</span>
+                {% else %}
+                <span class="badge badge-green">Active</span>
+                {% endif %}
+            </td>
+            <td>
+                <form method="POST" action="{{ url_for('delete_contact', contact_id=c['id']) }}" style="display:inline;"
+                      onsubmit="return confirm('Delete this contact?')">
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p class="text-muted">No contacts yet. Add some above!</p>
+    {% endif %}
+</div>
+{% endblock %}

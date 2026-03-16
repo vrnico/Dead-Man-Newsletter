@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Send Detail — NewsLetterGo{% endblock %}
+{% block content %}
+<h1>Send Detail</h1>
+
+<div class="card">
+    <p><strong>Template:</strong> {{ send['template_name'] }}</p>
+    <p><strong>Subject:</strong> {{ send['subject'] }}</p>
+    <p><strong>Recipients:</strong> {{ send['recipient_count'] }}</p>
+    <p><strong>Sent:</strong> {{ send['sent_at'] }}</p>
+</div>
+
+<div class="card">
+    <h3 class="mb-8">Email Preview</h3>
+    <div class="preview-box">
+        {{ send['body']|safe }}
+    </div>
+</div>
+
+<a href="{{ url_for('history') }}" class="btn btn-secondary mt-16">Back to History</a>
+{% endblock %}

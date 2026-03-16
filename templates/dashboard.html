@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — NewsLetterGo{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="grid grid-3">
+    <div class="card stat">
+        <div class="number">{{ contact_count }}</div>
+        <div class="label">Active Contacts</div>
+    </div>
+    <div class="card stat">
+        <div class="number">{{ template_count }}</div>
+        <div class="label">Templates</div>
+    </div>
+    <div class="card stat">
+        <div class="number">{{ send_count }}</div>
+        <div class="label">Emails Sent</div>
+    </div>
+</div>
+
+<div class="grid grid-2 mt-16">
+    <div class="card">
+        <h3>Safety Switch Status</h3>
+        {% if switch and switch['active'] %}
+        <p class="switch-active" style="font-size:16px;font-weight:600;margin:8px 0;">ACTIVE</p>
+        <p>Check-in every {{ switch['check_in_interval_hours'] }} hours</p>
+        <p class="text-sm text-muted mt-16">Last check-in: {{ switch['last_check_in'] }}</p>
+        <a href="{{ url_for('deadman') }}" class="btn btn-warning btn-sm mt-16">Manage</a>
+        {% else %}
+        <p class="switch-inactive" style="font-size:16px;font-weight:600;margin:8px 0;">INACTIVE</p>
+        <p>No active safety switch.</p>
+        <a href="{{ url_for('deadman') }}" class="btn btn-secondary btn-sm mt-16">Set Up</a>
+        {% endif %}
+    </div>
+    <div class="card">
+        <h3>Quick Actions</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+            <a href="{{ url_for('contacts') }}" class="btn btn-secondary btn-sm">Add Contacts</a>
+            <a href="{{ url_for('templates_list') }}" class="btn btn-primary btn-sm">Send Newsletter</a>
+        </div>
+    </div>
+</div>
+
+{% if recent_sends %}
+<div class="card mt-16">
+    <h3>Recent Sends</h3>
+    <table style="margin-top:12px;">
+        <tr>
+            <th>Template</th>
+            <th>Subject</th>
+            <th>Recipients</th>
+            <th>Date</th>
+        </tr>
+        {% for send in recent_sends %}
+        <tr>
+            <td><span class="badge badge-blue">{{ send['template_name'] }}</span></td>
+            <td>{{ send['subject'][:50] }}{% if send['subject']|length > 50 %}...{% endif %}</td>
+            <td>{{ send['recipient_count'] }}</td>
+            <td class="text-sm text-muted">{{ send['sent_at'] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% endif %}
+{% endblock %}
