@@ -15,6 +15,7 @@ load_dotenv()
 from database import get_db, init_db, get_settings
 from mailer import send_email, send_bulk
 import email_builder
+import shortener
 
 ENV_PATH = Path(__file__).parent / '.env'
 
@@ -384,13 +385,9 @@ def template_send(slug):
 
     s = get_settings(db)
 
-    # Optionally shorten URLs (shortener module added in Task 12)
     if s.get('url_shortener_enabled') == '1':
-        try:
-            from shortener import shorten_all_urls
-            body = shorten_all_urls(body, s)
-        except ImportError:
-            pass  # shortener not yet implemented
+        from shortener import shorten_all_urls
+        body = shorten_all_urls(body, s)
 
     if test_email:
         # Test send: use a placeholder token, no DB send row
