@@ -562,27 +562,53 @@ def check_deadman_switch():
         db.close()
         return 'triggered'  # no recipients but switch fired
 
-    # Build the email from the deadman switch template
+    # Build body from template
     tpl = db.execute("SELECT * FROM templates WHERE slug='deadman-switch'").fetchone()
     if tpl and switch['trip_details']:
-        from jinja2 import Template
-        # Parse trip details as JSON if possible, otherwise use as-is
+        from jinja2 import Template as J2Template
         try:
             values = json.loads(switch['trip_details'])
         except (json.JSONDecodeError, TypeError):
             values = {'trip_details': switch['trip_details']}
-        body = Template(tpl['body_template']).render(**values)
+        body = J2Template(tpl['body_template']).render(**values)
     else:
-        body = switch['body'] or f"<p>{switch['subject']}</p><p>Trip details: {switch['trip_details']}</p>"
+        body = switch['body'] or f"<p>{switch['subject']}</p>"
 
-    full_body = f'''<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:20px;background:#f5f5f5;">{body}</body></html>'''
+    s = get_settings(db)
 
-    subject = switch['subject'] or "Emergency: Check-in overdue"
-    send_bulk(recipients, subject, full_body)
+    # Insert sends row before sending
+    db.execute(
+        "INSERT INTO sends (template_id, subject, body, recipient_count) "
+        "VALUES (?, ?, ?, 0)",
+        (tpl['id'] if tpl else 1, switch['subject'] or 'Emergency', body)
+    )
+    db.commit()
+    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Deactivate after sending
+    successes = 0
+    for r in recipients:
+        email_addr, name = r[0], r[1]
+        # Look up unsubscribe token
+        contact = db.execute(
+            "SELECT unsubscribe_token FROM contacts WHERE email=?", (email_addr,)
+        ).fetchone()
+        token = contact['unsubscribe_token'] if contact and contact['unsubscribe_token'] else 'none'
+
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token=token,
+            send_id=send_id,
+            recipient_email=email_addr,
+            secret_key=app.secret_key,
+            font=None,
+        )
+        try:
+            send_email(email_addr, name, switch['subject'] or 'Emergency', full_html)
+            successes += 1
+        except Exception:
+            pass
+
+    db.execute("UPDATE sends SET recipient_count=? WHERE id=?", (successes, send_id))
     db.execute("UPDATE deadman_switch SET active=0")
     db.commit()
     db.close()
