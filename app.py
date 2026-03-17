@@ -624,6 +624,33 @@ def track_open(send_id, token):
 
 
 # ============================================================
+# UNSUBSCRIBE
+# ============================================================
+
+@app.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    """
+    One-click unsubscribe. Sets contacts.unsubscribed=1 for the matching token.
+    Always renders the confirmation page — no information leaked for invalid tokens.
+
+    KNOWN LIMITATION: Some email security scanners pre-fetch all links, which may
+    trigger this route and unsubscribe the recipient before they read the email.
+    This is an accepted tradeoff of one-click unsubscribe.
+    """
+    db = get_db()
+    contact = db.execute(
+        "SELECT id FROM contacts WHERE unsubscribe_token=?", (token,)
+    ).fetchone()
+    if contact:
+        db.execute(
+            "UPDATE contacts SET unsubscribed=1 WHERE id=?", (contact['id'],)
+        )
+        db.commit()
+    db.close()
+    return render_template('unsubscribe.html')
+
+
+# ============================================================
 # SETTINGS
 # ============================================================
 
