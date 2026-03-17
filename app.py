@@ -10,7 +10,7 @@ from dotenv import load_dotenv, set_key
 
 load_dotenv()
 
-from database import get_db, init_db
+from database import get_db, init_db, get_settings
 from mailer import send_email, send_bulk
 
 ENV_PATH = Path(__file__).parent / '.env'
@@ -582,6 +582,63 @@ def history_detail(send_id):
         flash('Send not found.', 'error')
         return redirect(url_for('history'))
     return render_template('history_detail.html', send=send)
+
+
+# ============================================================
+# SETTINGS
+# ============================================================
+
+SETTINGS_KEYS = [
+    'base_url', 'header_image_url', 'footer_image_url',
+    'default_font', 'tracking_pixel_enabled',
+    'url_shortener_enabled', 'url_shortener_provider',
+    'url_shortener_api_key', 'url_shortener_bitly_group',
+]
+
+FONT_OPTIONS = [
+    {'value': 'Georgia, serif',         'label': 'Georgia (serif)'},
+    {'value': 'Arial, sans-serif',      'label': 'Arial (sans-serif)'},
+    {'value': 'Helvetica, sans-serif',  'label': 'Helvetica (sans-serif)'},
+    {'value': 'Verdana, sans-serif',    'label': 'Verdana (sans-serif)'},
+    {'value': 'Times New Roman, serif', 'label': 'Times New Roman (serif)'},
+    {'value': 'Trebuchet MS, sans-serif','label': 'Trebuchet MS (sans-serif)'},
+    {'value': 'Courier New, monospace', 'label': 'Courier New (monospace)'},
+]
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    db = get_db()
+    if request.method == 'POST':
+        for key in SETTINGS_KEYS:
+            # Checkboxes: if not in form, value is '0'
+            if key in ('tracking_pixel_enabled', 'url_shortener_enabled'):
+                value = '1' if request.form.get(key) else '0'
+            else:
+                value = request.form.get(key, '').strip()
+            db.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                (key, value)
+            )
+        db.commit()
+        flash('Settings saved.', 'success')
+        db.close()
+        return redirect(url_for('settings'))
+
+    s = get_settings(db)
+    db.close()
+
+    base_url = s.get('base_url', '')
+    tracking_enabled = s.get('tracking_pixel_enabled') == '1'
+    show_tracking_warning = tracking_enabled and (
+        not base_url or base_url.startswith('http://localhost') or
+        base_url.startswith('http://127.')
+    )
+
+    return render_template('settings.html',
+                           settings=s,
+                           fonts=FONT_OPTIONS,
+                           show_tracking_warning=show_tracking_warning)
 
 
 if __name__ == '__main__':

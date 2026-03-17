@@ -116,6 +116,12 @@ def init_db():
     conn.close()
 
 
+def get_settings(conn):
+    """Return all settings as a plain dict {key: value}."""
+    rows = conn.execute("SELECT key, value FROM settings").fetchall()
+    return {r['key']: r['value'] for r in rows}
+
+
 def _seed_templates(conn):
     templates = [
         {
