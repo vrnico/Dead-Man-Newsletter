@@ -3,7 +3,6 @@ import json
 import smtplib
 import socket
 import re
-import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 
