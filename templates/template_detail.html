@@ -1,111 +1,92 @@
 {% extends 'base.html' %}
 {% block title %}{{ template['name'] }} — NewsLetterGo{% endblock %}
-{% block content %}
+{% block head %}
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <style>
-    .color-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-    .color-row label {
-        min-width: 90px;
-        margin: 0;
-    }
-    .color-row input[type="color"] {
-        width: 40px;
-        height: 32px;
-        padding: 2px;
-        border: 1px solid #475569;
-        border-radius: 6px;
-        cursor: pointer;
-        background: #0f172a;
-    }
-    .color-row input[type="text"] {
-        width: 90px;
-        padding: 6px 8px;
-        font-size: 13px;
-        font-family: monospace;
-    }
-    .preset-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-        gap: 6px;
-        margin: 8px 0 16px;
-    }
-    .preset-swatch {
-        height: 40px;
-        border-radius: 6px;
-        cursor: pointer;
-        border: 2px solid transparent;
-        transition: all 0.15s;
-        position: relative;
-    }
-    .preset-swatch:hover {
-        border-color: #38bdf8;
-        transform: scale(1.05);
-    }
-    .preset-swatch .preset-label {
-        position: absolute;
-        bottom: -16px;
-        left: 0;
-        right: 0;
-        text-align: center;
-        font-size: 9px;
-        color: #64748b;
-    }
-    .style-section {
-        border-bottom: 1px solid #334155;
-        padding-bottom: 14px;
-        margin-bottom: 14px;
-    }
-    .style-section:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-    }
-    .style-section h4 {
-        font-size: 13px;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 10px;
-    }
-    .three-col {
-        display: grid;
-        grid-template-columns: 1fr 1fr 320px;
-        gap: 16px;
-    }
-    @media (max-width: 1100px) {
-        .three-col { grid-template-columns: 1fr; }
-    }
-    .preview-frame {
-        background: #e5e7eb;
-        padding: 16px;
-        border-radius: 8px;
-        margin-top: 8px;
-    }
-    .preview-frame .preview-box {
-        margin-top: 0;
-        max-height: 700px;
-        border-radius: 6px;
-    }
-</style>
+/* Font classes applied to editor content */
+.ql-font-georgia        { font-family: Georgia, serif; }
+.ql-font-palatino       { font-family: 'Palatino Linotype', Palatino, serif; }
+.ql-font-times-new-roman { font-family: 'Times New Roman', Times, serif; }
+.ql-font-garamond       { font-family: Garamond, serif; }
+.ql-font-arial          { font-family: Arial, sans-serif; }
+.ql-font-helvetica      { font-family: Helvetica, sans-serif; }
+.ql-font-verdana        { font-family: Verdana, sans-serif; }
+.ql-font-trebuchet      { font-family: 'Trebuchet MS', sans-serif; }
+.ql-font-tahoma         { font-family: Tahoma, sans-serif; }
+.ql-font-century-gothic { font-family: 'Century Gothic', sans-serif; }
+.ql-font-courier        { font-family: 'Courier New', Courier, monospace; }
+.ql-font-impact         { font-family: Impact, sans-serif; }
 
+/* Quill font picker: override snow theme's "Sans Serif" default for all items.
+   Must match .ql-snow .ql-picker.ql-font specificity to win. */
+.ql-snow .ql-picker.ql-font .ql-picker-label::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item::before                                  { content: 'Default'; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before            { content: 'Georgia'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]                    { font-family: Georgia, serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="palatino"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]::before           { content: 'Palatino'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]                   { font-family: 'Palatino Linotype', Palatino, serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before    { content: 'Times New Roman'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]            { font-family: 'Times New Roman', Times, serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="garamond"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]::before           { content: 'Garamond'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]                   { font-family: Garamond, serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before              { content: 'Arial'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]                      { font-family: Arial, sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="helvetica"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]::before          { content: 'Helvetica'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]                  { font-family: Helvetica, sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before            { content: 'Verdana'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]                    { font-family: Verdana, sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="trebuchet"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]::before          { content: 'Trebuchet MS'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]                  { font-family: 'Trebuchet MS', sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before             { content: 'Tahoma'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]                     { font-family: Tahoma, sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="century-gothic"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="century-gothic"]::before     { content: 'Century Gothic'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="century-gothic"]             { font-family: 'Century Gothic', sans-serif; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]::before            { content: 'Courier New'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]                    { font-family: 'Courier New', Courier, monospace; }
+
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before             { content: 'Impact'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]                     { font-family: Impact, sans-serif; }
+</style>
+{% endblock %}
+{% block content %}
 <h1>{{ template['name'] }}</h1>
 <p class="text-muted mb-8">{{ template['description'] }}</p>
 
 <form id="emailForm" method="POST" action="{{ url_for('template_send', slug=template['slug']) }}">
-    <div class="three-col">
-        <!-- COLUMN 1: Content fields -->
+    <div class="grid grid-2">
         <div>
             <div class="card">
-                <h3 class="mb-8">Content</h3>
+                <h3 class="mb-8">Fill In Your Content</h3>
                 {% for field in fields %}
                 <div class="form-group">
                     <label>{{ field['label'] }}</label>
                     {% if field['type'] == 'textarea' %}
-                    <textarea name="{{ field['name'] }}" class="template-field" placeholder="{{ field['label'] }}"></textarea>
+                    <div id="editor-{{ field['name'] }}" style="height:180px;background:white;"></div>
+                    <input type="hidden" name="{{ field['name'] }}" id="hidden-{{ field['name'] }}"
+                           value="{{ request.form.get(field['name'], '') }}">
                     {% else %}
                     <input type="text" name="{{ field['name'] }}" class="template-field" placeholder="{{ field['label'] }}">
                     {% endif %}
@@ -128,6 +109,17 @@
                     <label>Or Send Test To (single email)</label>
                     <input type="email" name="test_email" placeholder="test@example.com">
                 </div>
+                <div class="form-group">
+                  <label>Font <small class="text-muted">(default from Settings — change for this send only)</small></label>
+                  <select name="font" id="fontSelect">
+                    {% for f in fonts %}
+                    <option value="{{ f.value }}"
+                      {% if f.value == settings.default_font %}selected{% endif %}>
+                      {{ f.label }}
+                    </option>
+                    {% endfor %}
+                  </select>
+                </div>
                 <div style="display:flex;gap:8px;">
                     <button type="button" class="btn btn-secondary" onclick="previewEmail()">Preview</button>
                     <button type="submit" class="btn btn-primary" onclick="return confirm('Send this email?')">Send</button>
@@ -135,183 +127,102 @@
             </div>
         </div>
 
-        <!-- COLUMN 2: Style customization -->
         <div>
             <div class="card">
-                <h3 class="mb-8">Style & Design</h3>
-
-                <!-- COLOR PRESETS -->
-                <div class="style-section">
-                    <h4>Quick Presets</h4>
-                    <div class="preset-grid">
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#6366f1,#8b5cf6);"
-                             onclick="applyPreset('#6366f1','#f0f0ff','#ffffff','#1e1b4b','Söhne, -apple-system, sans-serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#059669,#10b981);"
-                             onclick="applyPreset('#059669','#ecfdf5','#ffffff','#1a1a2e','Georgia, serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#dc2626,#f97316);"
-                             onclick="applyPreset('#dc2626','#fff5f5','#ffffff','#1a1a1a','-apple-system, Helvetica, sans-serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8);"
-                             onclick="applyPreset('#0ea5e9','#f0f9ff','#ffffff','#0c4a6e','-apple-system, Helvetica, sans-serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#1a1a2e,#333);"
-                             onclick="applyPreset('#f5f5f5','#2a2a3e','#1a1a2e','#e0e0e0','Menlo, Consolas, monospace')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#ec4899,#f472b6);"
-                             onclick="applyPreset('#ec4899','#fdf2f8','#ffffff','#1a1a2e','Georgia, serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);"
-                             onclick="applyPreset('#f59e0b','#fffbeb','#ffffff','#1a1a1a','Palatino, Georgia, serif')"></div>
-                        <div class="preset-swatch" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa);"
-                             onclick="applyPreset('#8b5cf6','#f5f3ff','#ffffff','#1e1b4b','Söhne, -apple-system, sans-serif')"></div>
-                    </div>
-                </div>
-
-                <!-- INDIVIDUAL COLORS -->
-                <div class="style-section">
-                    <h4>Colors</h4>
-                    <div class="color-row">
-                        <label>Primary</label>
-                        <input type="color" id="cp_primary" value="#6366f1" onchange="syncColor('_primary', this.value)">
-                        <input type="text" id="ct_primary" name="_primary" value="#6366f1" onchange="syncColorFromText('_primary', this.value)">
-                    </div>
-                    <div class="color-row">
-                        <label>Secondary</label>
-                        <input type="color" id="cp_secondary" value="#f0f0ff" onchange="syncColor('_secondary', this.value)">
-                        <input type="text" id="ct_secondary" name="_secondary" value="#f0f0ff" onchange="syncColorFromText('_secondary', this.value)">
-                    </div>
-                    <div class="color-row">
-                        <label>Background</label>
-                        <input type="color" id="cp_bg" value="#ffffff" onchange="syncColor('_bg', this.value)">
-                        <input type="text" id="ct_bg" name="_bg" value="#ffffff" onchange="syncColorFromText('_bg', this.value)">
-                    </div>
-                    <div class="color-row">
-                        <label>Text</label>
-                        <input type="color" id="cp_text" value="#1e1b4b" onchange="syncColor('_text', this.value)">
-                        <input type="text" id="ct_text" name="_text" value="#1e1b4b" onchange="syncColorFromText('_text', this.value)">
-                    </div>
-                </div>
-
-                <!-- FONT -->
-                <div class="style-section">
-                    <h4>Typography</h4>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <select name="_font" id="fontSelect" onchange="previewEmail()">
-                            <option value="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">System Default (Clean)</option>
-                            <option value="Georgia, 'Times New Roman', serif">Georgia (Classic)</option>
-                            <option value="Palatino, 'Palatino Linotype', 'Book Antiqua', serif">Palatino (Elegant)</option>
-                            <option value="'Courier New', Courier, monospace">Courier (Typewriter)</option>
-                            <option value="Menlo, Consolas, 'Liberation Mono', monospace">Menlo (Developer)</option>
-                            <option value="Verdana, Geneva, sans-serif">Verdana (Readable)</option>
-                            <option value="Tahoma, Geneva, sans-serif">Tahoma (Compact)</option>
-                            <option value="'Trebuchet MS', 'Lucida Sans', sans-serif">Trebuchet (Friendly)</option>
-                            <option value="Impact, 'Arial Black', sans-serif">Impact (Bold)</option>
-                            <option value="'Comic Sans MS', 'Comic Sans', cursive">Comic Sans (Casual)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- IMAGES -->
-                <div class="style-section">
-                    <h4>Images</h4>
-                    <div class="form-group">
-                        <label>Header / Banner Image URL</label>
-                        <input type="text" name="_header_img" id="headerImgInput" placeholder="https://example.com/banner.jpg">
-                        <p class="text-sm text-muted" style="margin-top:3px;">Full-width image at the top. Recommended: 600px wide.</p>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label>Logo Image URL</label>
-                        <input type="text" name="_logo_img" id="logoImgInput" placeholder="https://example.com/logo.png">
-                        <p class="text-sm text-muted" style="margin-top:3px;">Small logo shown in the header area.</p>
-                    </div>
-                </div>
-
-                <!-- FOOTER -->
-                <div class="style-section">
-                    <h4>Footer</h4>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <input type="text" name="_footer" id="footerInput" placeholder="e.g. Follow me @handle | Unsubscribe">
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- COLUMN 3: Live preview -->
-        <div>
-            <div class="card" style="position:sticky;top:16px;">
-                <h3 class="mb-8">Preview</h3>
-                <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;font-size:13px;">
-                    Subject line appears here...
-                </div>
-                <div class="preview-frame">
-                    <div id="previewBody" class="preview-box" style="min-height:300px;">
-                        <p style="color:#999;text-align:center;padding:60px 20px;">
-                            Fill in some content and it'll preview here.<br>
-                            <small>Try clicking a color preset to start!</small>
-                        </p>
-                    </div>
-                </div>
+                <h3 class="mb-8">Preview <small class="text-muted" style="font-weight:normal;font-size:12px;">— auto-updates after 10 keystrokes or 5s idle</small></h3>
+                <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;">Subject will appear here...</div>
+                <iframe id="previewBody"
+                        style="width:100%;height:500px;border:1px solid #334155;border-radius:8px;background:white;"
+                        srcdoc="<p style='color:#999;text-align:center;padding:40px;font-family:sans-serif;'>Fill in the fields — preview updates automatically</p>">
+                </iframe>
             </div>
         </div>
     </div>
 </form>
 
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
 <script>
-function syncColor(field, value) {
-    document.getElementById('ct' + field).value = value;
-    document.getElementById('cp' + field).value = value;
-    previewEmail();
-}
+var Font = Quill.import('formats/font');
+Font.whitelist = ['georgia','palatino','times-new-roman','garamond','arial','helvetica','verdana','trebuchet','tahoma','century-gothic','courier','impact'];
+Quill.register(Font, true);
 
-function syncColorFromText(field, value) {
-    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-        document.getElementById('cp' + field).value = value;
-        previewEmail();
-    }
-}
+var quillToolbar = [
+  [{ 'font': ['georgia','palatino','times-new-roman','garamond','arial','helvetica','verdana','trebuchet','tahoma','century-gothic','courier','impact'] }],
+  [{ 'size': ['small', false, 'large', 'huge'] }],
+  ['bold', 'italic', 'underline'],
+  ['link'],
+  [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+  [{ 'color': [] }],
+  ['clean']
+];
 
-function applyPreset(primary, secondary, bg, text, font) {
-    document.getElementById('cp_primary').value = primary;
-    document.getElementById('ct_primary').value = primary;
-    document.getElementById('cp_secondary').value = secondary;
-    document.getElementById('ct_secondary').value = secondary;
-    document.getElementById('cp_bg').value = bg;
-    document.getElementById('ct_bg').value = bg;
-    document.getElementById('cp_text').value = text;
-    document.getElementById('ct_text').value = text;
-
-    // Find matching font option
-    const sel = document.getElementById('fontSelect');
-    for (let i = 0; i < sel.options.length; i++) {
-        if (sel.options[i].value.indexOf(font.split(',')[0].replace(/'/g,'')) >= 0) {
-            sel.selectedIndex = i;
-            break;
-        }
-    }
-    previewEmail();
-}
-
-let previewTimeout;
-async function previewEmail() {
-    clearTimeout(previewTimeout);
-    previewTimeout = setTimeout(async () => {
-        const form = document.getElementById('emailForm');
-        const formData = new FormData(form);
-
-        try {
-            const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await resp.json();
-            document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
-            document.getElementById('previewBody').innerHTML = data.body;
-        } catch(e) {}
-    }, 200);
-}
-
-// Auto-preview on any input change
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('input, textarea, select').forEach(el => {
-        el.addEventListener('input', () => previewEmail());
-        el.addEventListener('change', () => previewEmail());
-    });
+var editors = [];
+{% for f in fields %}
+{% if f.type == 'textarea' %}
+var quill_{{ f.name }} = new Quill('#editor-{{ f.name }}', {
+  theme: 'snow',
+  modules: { toolbar: quillToolbar }
 });
+var existing_{{ f.name }} = document.getElementById('hidden-{{ f.name }}').value;
+if (existing_{{ f.name }}) {
+  quill_{{ f.name }}.root.innerHTML = existing_{{ f.name }};
+}
+editors.push({ editor: quill_{{ f.name }}, fieldName: '{{ f.name }}' });
+{% endif %}
+{% endfor %}
+
+function flushEditors() {
+  editors.forEach(function(q) {
+    document.getElementById('hidden-' + q.fieldName).value = q.editor.root.innerHTML;
+  });
+}
+
+document.querySelector('form').addEventListener('submit', flushEditors);
+
+async function previewEmail() {
+    flushEditors();
+    const form = document.getElementById('emailForm');
+    const formData = new FormData(form);
+
+    const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
+        method: 'POST',
+        body: formData
+    });
+    const data = await resp.json();
+
+    document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
+    document.getElementById('previewBody').srcdoc = data.body;
+}
+
+// Auto-preview: every 10 keystrokes, or 5 seconds after the last keystroke
+var keystrokeCount = 0;
+var idleTimer = null;
+
+function schedulePreview() {
+  keystrokeCount++;
+  clearTimeout(idleTimer);
+  if (keystrokeCount >= 10) {
+    keystrokeCount = 0;
+    previewEmail();
+  } else {
+    idleTimer = setTimeout(function() {
+      keystrokeCount = 0;
+      previewEmail();
+    }, 5000);
+  }
+}
+
+document.querySelectorAll('#emailForm input[type="text"]').forEach(function(inp) {
+  inp.addEventListener('input', schedulePreview);
+});
+
+editors.forEach(function(q) {
+  q.editor.on('text-change', schedulePreview);
+});
+
+// Update preview immediately when font changes
+document.getElementById('fontSelect').addEventListener('change', previewEmail);
 </script>
 {% endblock %}

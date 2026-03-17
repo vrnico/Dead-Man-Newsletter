@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+{% block title %}Settings — NewsLetterGo{% endblock %}
+{% block head %}
+<style>
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #334155;
+    border-radius: 24px;
+    transition: .2s;
+}
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background: #94a3b8;
+    border-radius: 50%;
+    transition: .2s;
+}
+input:checked + .toggle-slider { background: #38bdf8; }
+input:checked + .toggle-slider:before { background: white; transform: translateX(20px); }
+</style>
+{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+
+<form method="POST">
+
+  <div class="card">
+    <h3 class="mb-8">📧 Email Appearance</h3>
+
+    <div class="form-group">
+      <label>Default Font</label>
+      <select name="default_font">
+        {% for f in fonts %}
+        <option value="{{ f.value }}" {% if settings.default_font == f.value %}selected{% endif %}>{{ f.label }}</option>
+        {% endfor %}
+      </select>
+      <small class="text-muted">Can be overridden at send time for each email.</small>
+    </div>
+
+    <div class="form-group">
+      <label>Header Image URL</label>
+      <input type="text" name="header_image_url" value="{{ settings.header_image_url }}" placeholder="https://example.com/header.png">
+      <small class="text-muted">Shown at the top of every email. Leave blank to disable.</small>
+    </div>
+
+    <div class="form-group">
+      <label>Footer Image URL</label>
+      <input type="text" name="footer_image_url" value="{{ settings.footer_image_url }}" placeholder="https://example.com/footer.png">
+      <small class="text-muted">Shown above the unsubscribe link in every email.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="mb-8">📊 Open Tracking</h3>
+
+    {% if show_tracking_warning %}
+    <div class="flash flash-warning">⚠️ Tracking requires the app to be publicly accessible. Set a Base URL below, or leave tracking off for local use.</div>
+    {% endif %}
+
+    <div class="form-group">
+      <label>Base URL</label>
+      <input type="text" name="base_url" value="{{ settings.base_url }}" placeholder="https://newsletter.yourdomain.com">
+      <small class="text-muted">Required for tracking pixels and unsubscribe links to work inside email clients.</small>
+    </div>
+
+    <div class="form-group">
+      <label class="toggle-label">
+        <span class="toggle-switch">
+          <input type="checkbox" name="tracking_pixel_enabled" value="1"
+                 {% if settings.tracking_pixel_enabled == '1' %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </span>
+        Track email opens (tracking pixel)
+      </label>
+      <small class="text-muted" style="margin-left:56px;">Embeds a 1×1 invisible image. Open count shown in send history. Requires Base URL above.</small>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="mb-8">🔗 URL Shortener</h3>
+
+    <div class="flash flash-info">ℹ️ Shortened links let you track clicks through Bit.ly or TinyURL's dashboards — useful for seeing which links in your emails get the most engagement. This is separate from open tracking above.</div>
+
+    <div class="form-group">
+      <label class="toggle-label">
+        <span class="toggle-switch">
+          <input type="checkbox" name="url_shortener_enabled" value="1"
+                 {% if settings.url_shortener_enabled == '1' %}checked{% endif %}>
+          <span class="toggle-slider"></span>
+        </span>
+        Auto-shorten links in emails
+      </label>
+    </div>
+
+    <div class="form-group">
+      <label>Provider</label>
+      <select name="url_shortener_provider" id="shortener_provider">
+        <option value="bitly"   {% if settings.url_shortener_provider == 'bitly' %}selected{% endif %}>Bit.ly</option>
+        <option value="tinyurl" {% if settings.url_shortener_provider == 'tinyurl' %}selected{% endif %}>TinyURL</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>API Key</label>
+      <input type="password" name="url_shortener_api_key" value="{{ settings.url_shortener_api_key }}" placeholder="Your API key">
+    </div>
+
+    <div class="form-group" id="bitly_group_row"
+         {% if settings.url_shortener_provider != 'bitly' %}style="display:none"{% endif %}>
+      <label>Bit.ly Group GUID</label>
+      <input type="text" name="url_shortener_bitly_group" value="{{ settings.url_shortener_bitly_group }}" placeholder="Bj1abc...">
+      <small class="text-muted">Found in your Bit.ly account settings under Groups.</small>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Save Settings</button>
+
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('shortener_provider').addEventListener('change', function() {
+  document.getElementById('bitly_group_row').style.display = this.value === 'bitly' ? '' : 'none';
+});
+</script>
+{% endblock %}

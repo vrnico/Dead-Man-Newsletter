@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Newsletter App{% endblock %}</title>
+    {% block head %}{% endblock %}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -201,6 +202,7 @@
         <a href="{{ url_for('templates_list') }}" {% if request.endpoint == 'templates_list' %}class="active"{% endif %}>Templates</a>
         <a href="{{ url_for('deadman') }}" {% if request.endpoint == 'deadman' %}class="active"{% endif %}>Safety Switch</a>
         <a href="{{ url_for('history') }}" {% if request.endpoint == 'history' %}class="active"{% endif %}>History</a>
+        <a href="{{ url_for('settings') }}" {% if request.endpoint == 'settings' %}class="active"{% endif %}>Settings</a>
         <a href="{{ url_for('setup') }}" {% if request.endpoint == 'setup' %}class="active"{% endif %} style="margin-left:auto;">Setup</a>
     </nav>
     <div class="container">
@@ -213,5 +215,6 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </div>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

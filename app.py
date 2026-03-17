@@ -1,17 +1,21 @@
 import os
 import json
+import re
+import secrets
 import smtplib
 import socket
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
 from dotenv import load_dotenv, set_key
 
 load_dotenv()
 
-from database import get_db, init_db
+from database import get_db, init_db, get_settings
 from mailer import send_email, send_bulk
+import email_builder
+import shortener
 
 ENV_PATH = Path(__file__).parent / '.env'
 
@@ -19,10 +23,18 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-me')
 app.jinja_env.filters['fromjson'] = json.loads
 
+# 1x1 transparent GIF
+TRACKING_GIF = (
+    b'\x47\x49\x46\x38\x39\x61\x01\x00\x01\x00\x80\x00\x00'
+    b'\xff\xff\xff\x00\x00\x00\x21\xf9\x04\x00\x00\x00\x00'
+    b'\x00\x2c\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02'
+    b'\x44\x01\x00\x3b'
+)
 
-# --- Initialize DB on startup ---
-with app.app_context():
-    init_db()
+# --- Initialize DB on startup (skipped during testing; conftest.py handles this) ---
+if not os.environ.get('TESTING'):
+    with app.app_context():
+        init_db()
 
 
 # ============================================================
@@ -224,7 +236,7 @@ def add_contact():
 
     db = get_db()
     try:
-        db.execute("INSERT INTO contacts (email, name, groups) VALUES (?, ?, ?)",
+        db.execute("INSERT INTO contacts (email, name, groups, unsubscribe_token) VALUES (?, ?, ?, lower(hex(randomblob(16))))",
                     (email, name, json.dumps(group_list)))
         db.commit()
         flash(f'Added {email}', 'success')
@@ -282,7 +294,7 @@ def import_contacts():
         groups = parts[2].split(';') if len(parts) > 2 else []
         groups = [g.strip() for g in groups if g.strip()]
         try:
-            db.execute("INSERT INTO contacts (email, name, groups) VALUES (?, ?, ?)",
+            db.execute("INSERT INTO contacts (email, name, groups, unsubscribe_token) VALUES (?, ?, ?, lower(hex(randomblob(16))))",
                         (email, name, json.dumps(groups)))
             added += 1
         except Exception:
@@ -319,56 +331,51 @@ def template_detail(slug):
     for row in groups_raw:
         for g in json.loads(row['groups']):
             all_groups.add(g)
-    db.close()
 
     fields = json.loads(tpl['fields'])
-    return render_template('template_detail.html', template=tpl, fields=fields, groups=sorted(all_groups))
+    s = get_settings(db)
+    db.close()
 
-
-STYLE_DEFAULTS = {
-    '_primary': '#6366f1',
-    '_secondary': '#f0f0ff',
-    '_bg': '#ffffff',
-    '_text': '#1e1b4b',
-    '_font': "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif",
-    '_header_img': '',
-    '_logo_img': '',
-    '_footer': '',
-}
-
-
-def _collect_values(tpl_fields):
-    """Collect content field values + style values from the request form."""
-    fields = json.loads(tpl_fields)
-    values = {}
-    for f in fields:
-        values[f['name']] = request.form.get(f['name'], '')
-    # Inject style variables with defaults
-    for key, default in STYLE_DEFAULTS.items():
-        val = request.form.get(key, '').strip()
-        values[key] = val if val else default
-    return values
+    return render_template('template_detail.html', template=tpl, fields=fields, groups=sorted(all_groups),
+                           fonts=FONT_OPTIONS, settings=s)
 
 
 @app.route('/templates/<slug>/preview', methods=['POST'])
 def template_preview(slug):
     db = get_db()
     tpl = db.execute("SELECT * FROM templates WHERE slug=?", (slug,)).fetchone()
+    s = get_settings(db)
     db.close()
     if not tpl:
         return jsonify({'error': 'Template not found'}), 404
 
-    values = _collect_values(tpl['fields'])
+    fields = json.loads(tpl['fields'])
+    values = {}
+    for f in fields:
+        values[f['name']] = request.form.get(f['name'], '')
+
+    font = request.form.get('font', '').strip() or None
 
     from jinja2 import Template
     subject = Template(tpl['subject_template']).render(**values)
     body = Template(tpl['body_template']).render(**values)
 
-    return jsonify({'subject': subject, 'body': body})
+    full_html = email_builder.build_email(
+        body=body,
+        settings=s,
+        unsubscribe_token='preview',
+        send_id=0,
+        recipient_email='',
+        secret_key=app.secret_key,
+        font=font,
+    )
+
+    return jsonify({'subject': subject, 'body': full_html})
 
 
 @app.route('/templates/<slug>/send', methods=['POST'])
 def template_send(slug):
+
     db = get_db()
     tpl = db.execute("SELECT * FROM templates WHERE slug=?", (slug,)).fetchone()
     if not tpl:
@@ -376,7 +383,12 @@ def template_send(slug):
         db.close()
         return redirect(url_for('templates_list'))
 
-    values = _collect_values(tpl['fields'])
+    fields = json.loads(tpl['fields'])
+    values = {}
+    for f in fields:
+        values[f['name']] = request.form.get(f['name'], '')
+
+    font = request.form.get('font', '').strip() or None
     target_group = request.form.get('target_group', 'all')
     test_email = request.form.get('test_email', '').strip()
 
@@ -384,40 +396,84 @@ def template_send(slug):
     subject = Template(tpl['subject_template']).render(**values)
     body = Template(tpl['body_template']).render(**values)
 
-    # Wrap in basic HTML document
-    full_body = f'''<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:20px;background:#f5f5f5;">{body}</body></html>'''
+    s = get_settings(db)
+
+    if s.get('url_shortener_enabled') == '1':
+        from shortener import shorten_all_urls
+        body = shorten_all_urls(body, s)
 
     if test_email:
-        # Send test to single address
+        # Test send: use a placeholder token, no DB send row
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token='test',
+            send_id=0,
+            recipient_email=test_email,
+            secret_key=app.secret_key,
+            font=font,
+        )
         try:
-            send_email(test_email, '', subject, full_body)
+            send_email(test_email, '', subject, full_html)
             flash(f'Test email sent to {test_email}!', 'success')
         except Exception as e:
             flash(f'Error sending test: {e}', 'error')
         db.close()
         return redirect(url_for('template_detail', slug=slug))
 
-    # Send to group
+    # Resolve recipients
     if target_group == 'all':
-        rows = db.execute("SELECT email, name FROM contacts WHERE unsubscribed=0").fetchall()
+        rows = db.execute(
+            "SELECT * FROM contacts WHERE unsubscribed=0"
+        ).fetchall()
     else:
-        rows = db.execute("SELECT email, name, groups FROM contacts WHERE unsubscribed=0").fetchall()
-        rows = [r for r in rows if target_group in json.loads(r['groups'])]
+        all_rows = db.execute(
+            "SELECT * FROM contacts WHERE unsubscribed=0"
+        ).fetchall()
+        rows = [r for r in all_rows if target_group in json.loads(r['groups'])]
 
-    recipients = [(r['email'], r['name']) for r in rows]
-
-    if not recipients:
+    if not rows:
         flash('No recipients found for that group.', 'error')
         db.close()
         return redirect(url_for('template_detail', slug=slug))
 
-    successes, errors = send_bulk(recipients, subject, full_body)
+    # Insert sends row BEFORE sending (send_id needed for pixel URLs)
+    db.execute(
+        "INSERT INTO sends (template_id, subject, body, recipient_count) VALUES (?, ?, ?, 0)",
+        (tpl['id'], subject, body)
+    )
+    db.commit()
+    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Log the send
-    db.execute("INSERT INTO sends (template_id, subject, body, recipient_count) VALUES (?, ?, ?, ?)",
-               (tpl['id'], subject, full_body, successes))
+    successes = 0
+    errors = []
+    for r in rows:
+        # Ensure unsubscribe_token exists (lazy backfill for old contacts)
+        token = r['unsubscribe_token']
+        if not token:
+            token = secrets.token_hex(16)
+            db.execute(
+                "UPDATE contacts SET unsubscribe_token=? WHERE id=?",
+                (token, r['id'])
+            )
+            db.commit()
+
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token=token,
+            send_id=send_id,
+            recipient_email=r['email'],
+            secret_key=app.secret_key,
+            font=font,
+        )
+        try:
+            send_email(r['email'], r['name'], subject, full_html)
+            successes += 1
+        except Exception as e:
+            errors.append((r['email'], str(e)))
+
+    db.execute(
+        "UPDATE sends SET recipient_count=? WHERE id=?", (successes, send_id)
+    )
     db.commit()
     db.close()
 
@@ -519,27 +575,53 @@ def check_deadman_switch():
         db.close()
         return 'triggered'  # no recipients but switch fired
 
-    # Build the email from the deadman switch template
+    # Build body from template
     tpl = db.execute("SELECT * FROM templates WHERE slug='deadman-switch'").fetchone()
     if tpl and switch['trip_details']:
-        from jinja2 import Template
-        # Parse trip details as JSON if possible, otherwise use as-is
+        from jinja2 import Template as J2Template
         try:
             values = json.loads(switch['trip_details'])
         except (json.JSONDecodeError, TypeError):
             values = {'trip_details': switch['trip_details']}
-        body = Template(tpl['body_template']).render(**values)
+        body = J2Template(tpl['body_template']).render(**values)
     else:
-        body = switch['body'] or f"<p>{switch['subject']}</p><p>Trip details: {switch['trip_details']}</p>"
+        body = switch['body'] or f"<p>{switch['subject']}</p>"
 
-    full_body = f'''<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="margin:0;padding:20px;background:#f5f5f5;">{body}</body></html>'''
+    s = get_settings(db)
 
-    subject = switch['subject'] or "Emergency: Check-in overdue"
-    send_bulk(recipients, subject, full_body)
+    # Insert sends row before sending
+    db.execute(
+        "INSERT INTO sends (template_id, subject, body, recipient_count) "
+        "VALUES (?, ?, ?, 0)",
+        (tpl['id'] if tpl else 1, switch['subject'] or 'Emergency', body)
+    )
+    db.commit()
+    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Deactivate after sending
+    successes = 0
+    for r in recipients:
+        email_addr, name = r[0], r[1]
+        # Look up unsubscribe token
+        contact = db.execute(
+            "SELECT unsubscribe_token FROM contacts WHERE email=?", (email_addr,)
+        ).fetchone()
+        token = contact['unsubscribe_token'] if contact and contact['unsubscribe_token'] else 'none'
+
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token=token,
+            send_id=send_id,
+            recipient_email=email_addr,
+            secret_key=app.secret_key,
+            font=None,
+        )
+        try:
+            send_email(email_addr, name, switch['subject'] or 'Emergency', full_html)
+            successes += 1
+        except Exception:
+            pass
+
+    db.execute("UPDATE sends SET recipient_count=? WHERE id=?", (successes, send_id))
     db.execute("UPDATE deadman_switch SET active=0")
     db.commit()
     db.close()
@@ -569,7 +651,8 @@ class SchedulerConfig:
 
 app.config.from_object(SchedulerConfig)
 scheduler.init_app(app)
-scheduler.start()
+if not os.environ.get('TESTING'):
+    scheduler.start()
 
 
 # ============================================================
@@ -598,6 +681,125 @@ def history_detail(send_id):
         flash('Send not found.', 'error')
         return redirect(url_for('history'))
     return render_template('history_detail.html', send=send)
+
+
+# ============================================================
+# TRACKING PIXEL
+# ============================================================
+
+@app.route('/track/<int:send_id>/<token>.gif')
+def track_open(send_id, token):
+    """
+    Serve a 1x1 transparent GIF and increment open_count for the send.
+
+    Token is a 16-char hex string derived from HMAC(send_id:email).
+    We accept any 16-char hex token — we can't reverse-verify without the
+    recipient email. The token acts as a modest forgery deterrent.
+    Always returns the GIF (never reveals whether the send_id is valid).
+    """
+    if re.fullmatch(r'[0-9a-f]{16}', token):
+        db = get_db()
+        db.execute(
+            "UPDATE sends SET open_count = open_count + 1 WHERE id = ?",
+            (send_id,)
+        )
+        db.commit()
+        db.close()
+
+    return Response(
+        TRACKING_GIF,
+        mimetype='image/gif',
+        headers={'Cache-Control': 'no-store, no-cache, must-revalidate'}
+    )
+
+
+# ============================================================
+# UNSUBSCRIBE
+# ============================================================
+
+@app.route('/unsubscribe/<token>')
+def unsubscribe(token):
+    """
+    One-click unsubscribe. Sets contacts.unsubscribed=1 for the matching token.
+    Always renders the confirmation page — no information leaked for invalid tokens.
+
+    KNOWN LIMITATION: Some email security scanners pre-fetch all links, which may
+    trigger this route and unsubscribe the recipient before they read the email.
+    This is an accepted tradeoff of one-click unsubscribe.
+    """
+    db = get_db()
+    contact = db.execute(
+        "SELECT id FROM contacts WHERE unsubscribe_token=?", (token,)
+    ).fetchone()
+    if contact:
+        db.execute(
+            "UPDATE contacts SET unsubscribed=1 WHERE id=?", (contact['id'],)
+        )
+        db.commit()
+    db.close()
+    return render_template('unsubscribe.html')
+
+
+# ============================================================
+# SETTINGS
+# ============================================================
+
+SETTINGS_KEYS = [
+    'base_url', 'header_image_url', 'footer_image_url',
+    'default_font', 'tracking_pixel_enabled',
+    'url_shortener_enabled', 'url_shortener_provider',
+    'url_shortener_api_key', 'url_shortener_bitly_group',
+]
+
+FONT_OPTIONS = [
+    {'value': 'Georgia, serif',                               'label': 'Georgia'},
+    {'value': "'Palatino Linotype', Palatino, serif",         'label': 'Palatino'},
+    {'value': "'Times New Roman', Times, serif",              'label': 'Times New Roman'},
+    {'value': 'Garamond, serif',                              'label': 'Garamond'},
+    {'value': 'Arial, sans-serif',                            'label': 'Arial'},
+    {'value': 'Helvetica, sans-serif',                        'label': 'Helvetica'},
+    {'value': 'Verdana, sans-serif',                          'label': 'Verdana'},
+    {'value': "'Trebuchet MS', sans-serif",                   'label': 'Trebuchet MS'},
+    {'value': 'Tahoma, sans-serif',                           'label': 'Tahoma'},
+    {'value': "'Century Gothic', sans-serif",                 'label': 'Century Gothic'},
+    {'value': "'Courier New', Courier, monospace",            'label': 'Courier New'},
+    {'value': 'Impact, sans-serif',                           'label': 'Impact'},
+]
+
+
+@app.route('/settings', methods=['GET', 'POST'])
+def settings():
+    db = get_db()
+    if request.method == 'POST':
+        for key in SETTINGS_KEYS:
+            # Checkboxes: if not in form, value is '0'
+            if key in ('tracking_pixel_enabled', 'url_shortener_enabled'):
+                value = '1' if request.form.get(key) else '0'
+            else:
+                value = request.form.get(key, '').strip()
+            db.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                (key, value)
+            )
+        db.commit()
+        flash('Settings saved.', 'success')
+        db.close()
+        return redirect(url_for('settings'))
+
+    s = get_settings(db)
+    db.close()
+
+    base_url = s.get('base_url', '')
+    tracking_enabled = s.get('tracking_pixel_enabled') == '1'
+    show_tracking_warning = tracking_enabled and (
+        not base_url or base_url.startswith('http://localhost') or
+        base_url.startswith('http://127.')
+    )
+
+    return render_template('settings.html',
+                           settings=s,
+                           fonts=FONT_OPTIONS,
+                           show_tracking_warning=show_tracking_warning)
 
 
 if __name__ == '__main__':
