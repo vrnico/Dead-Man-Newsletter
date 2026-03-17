@@ -1,4 +1,6 @@
 import os
+os.environ['TESTING'] = '1'  # Must be set before app import to suppress init_db() and scheduler.start()
+
 import tempfile
 import pytest
 import database as db_module

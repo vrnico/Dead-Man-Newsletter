@@ -20,9 +20,10 @@ app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-me')
 app.jinja_env.filters['fromjson'] = json.loads
 
 
-# --- Initialize DB on startup ---
-with app.app_context():
-    init_db()
+# --- Initialize DB on startup (skipped during testing; conftest.py handles this) ---
+if not os.environ.get('TESTING'):
+    with app.app_context():
+        init_db()
 
 
 # ============================================================
@@ -551,7 +552,8 @@ class SchedulerConfig:
 
 app.config.from_object(SchedulerConfig)
 scheduler.init_app(app)
-scheduler.start()
+if not os.environ.get('TESTING'):
+    scheduler.start()
 
 
 # ============================================================
