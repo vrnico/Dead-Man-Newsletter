@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, Response
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv, set_key
 
 load_dotenv()
@@ -20,7 +21,17 @@ import shortener
 ENV_PATH = Path(__file__).parent / '.env'
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'dev-key-change-me')
+_secret = os.environ.get('SECRET_KEY', '')
+if not _secret:
+    import warnings
+    _secret = secrets.token_hex(32)
+    warnings.warn(
+        "SECRET_KEY not set! Generated a random key for this session. "
+        "Set SECRET_KEY in .env for stable sessions and HMAC tokens.",
+        stacklevel=1,
+    )
+app.secret_key = _secret
+csrf = CSRFProtect(app)
 app.jinja_env.filters['fromjson'] = json.loads
 
 # 1x1 transparent GIF
@@ -437,12 +448,12 @@ def template_send(slug):
         return redirect(url_for('template_detail', slug=slug))
 
     # Insert sends row BEFORE sending (send_id needed for pixel URLs)
-    db.execute(
+    cursor = db.execute(
         "INSERT INTO sends (template_id, subject, body, recipient_count) VALUES (?, ?, ?, 0)",
         (tpl['id'], subject, body)
     )
     db.commit()
-    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    send_id = cursor.lastrowid
 
     successes = 0
     errors = []
@@ -590,13 +601,13 @@ def check_deadman_switch():
     s = get_settings(db)
 
     # Insert sends row before sending
-    db.execute(
+    cursor = db.execute(
         "INSERT INTO sends (template_id, subject, body, recipient_count) "
         "VALUES (?, ?, ?, 0)",
         (tpl['id'] if tpl else 1, switch['subject'] or 'Emergency', body)
     )
     db.commit()
-    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    send_id = cursor.lastrowid
 
     successes = 0
     for r in recipients:
@@ -688,22 +699,31 @@ def history_detail(send_id):
 # ============================================================
 
 @app.route('/track/<int:send_id>/<token>.gif')
+@csrf.exempt
 def track_open(send_id, token):
     """
     Serve a 1x1 transparent GIF and increment open_count for the send.
 
-    Token is a 16-char hex string derived from HMAC(send_id:email).
-    We accept any 16-char hex token — we can't reverse-verify without the
-    recipient email. The token acts as a modest forgery deterrent.
+    Token is a 16-char hex HMAC(send_id:email). We verify by recomputing
+    the HMAC for all recipients of this send and checking for a match.
     Always returns the GIF (never reveals whether the send_id is valid).
     """
     if re.fullmatch(r'[0-9a-f]{16}', token):
         db = get_db()
-        db.execute(
-            "UPDATE sends SET open_count = open_count + 1 WHERE id = ?",
-            (send_id,)
+        # Verify the HMAC matches at least one recipient
+        contacts = db.execute(
+            "SELECT email FROM contacts WHERE unsubscribed=0"
+        ).fetchall()
+        valid = any(
+            email_builder._make_pixel_token(send_id, c['email'], app.secret_key) == token
+            for c in contacts
         )
-        db.commit()
+        if valid:
+            db.execute(
+                "UPDATE sends SET open_count = open_count + 1 WHERE id = ?",
+                (send_id,)
+            )
+            db.commit()
         db.close()
 
     return Response(
@@ -717,27 +737,30 @@ def track_open(send_id, token):
 # UNSUBSCRIBE
 # ============================================================
 
-@app.route('/unsubscribe/<token>')
+@app.route('/unsubscribe/<token>', methods=['GET', 'POST'])
+@csrf.exempt
 def unsubscribe(token):
     """
-    One-click unsubscribe. Sets contacts.unsubscribed=1 for the matching token.
-    Always renders the confirmation page — no information leaked for invalid tokens.
+    Two-step unsubscribe: GET shows a confirmation page with a button,
+    POST actually unsubscribes. This prevents email security scanners from
+    auto-unsubscribing recipients by pre-fetching links.
 
-    KNOWN LIMITATION: Some email security scanners pre-fetch all links, which may
-    trigger this route and unsubscribe the recipient before they read the email.
-    This is an accepted tradeoff of one-click unsubscribe.
+    Always renders the same page — no information leaked for invalid tokens.
     """
-    db = get_db()
-    contact = db.execute(
-        "SELECT id FROM contacts WHERE unsubscribe_token=?", (token,)
-    ).fetchone()
-    if contact:
-        db.execute(
-            "UPDATE contacts SET unsubscribed=1 WHERE id=?", (contact['id'],)
-        )
-        db.commit()
-    db.close()
-    return render_template('unsubscribe.html')
+    confirmed = False
+    if request.method == 'POST':
+        db = get_db()
+        contact = db.execute(
+            "SELECT id FROM contacts WHERE unsubscribe_token=?", (token,)
+        ).fetchone()
+        if contact:
+            db.execute(
+                "UPDATE contacts SET unsubscribed=1 WHERE id=?", (contact['id'],)
+            )
+            db.commit()
+        db.close()
+        confirmed = True
+    return render_template('unsubscribe.html', confirmed=confirmed, token=token)
 
 
 # ============================================================
@@ -775,6 +798,17 @@ def settings():
             # Checkboxes: if not in form, value is '0'
             if key in ('tracking_pixel_enabled', 'url_shortener_enabled'):
                 value = '1' if request.form.get(key) else '0'
+            elif key == 'url_shortener_api_key':
+                # Don't overwrite with blank — preserve existing key
+                value = request.form.get(key, '').strip()
+                if not value:
+                    continue
+            elif key in ('base_url', 'header_image_url', 'footer_image_url'):
+                value = request.form.get(key, '').strip()
+                if value and not value.startswith(('https://', 'http://')):
+                    flash(f'{key}: URL must start with https:// or http://', 'error')
+                    db.close()
+                    return redirect(url_for('settings'))
             else:
                 value = request.form.get(key, '').strip()
             db.execute(

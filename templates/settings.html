@@ -50,6 +50,7 @@ input:checked + .toggle-slider:before { background: white; transform: translateX
 <h1>Settings</h1>
 
 <form method="POST">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
   <div class="card">
     <h3 class="mb-8">📧 Email Appearance</h3>
@@ -129,7 +130,8 @@ input:checked + .toggle-slider:before { background: white; transform: translateX
 
     <div class="form-group">
       <label>API Key</label>
-      <input type="password" name="url_shortener_api_key" value="{{ settings.url_shortener_api_key }}" placeholder="Your API key">
+      <input type="password" name="url_shortener_api_key" value="" placeholder="{% if settings.url_shortener_api_key %}(saved — leave blank to keep){% else %}Your API key{% endif %}">
+      <small class="text-muted">API key is stored securely. Leave blank to keep the current key.</small>
     </div>
 
     <div class="form-group" id="bitly_group_row"

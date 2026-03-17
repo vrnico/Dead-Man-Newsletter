@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Unsubscribed</title>
+  <title>Unsubscribe</title>
   <style>
     body {
       font-family: -apple-system, Helvetica, Arial, sans-serif;
@@ -24,19 +24,36 @@
     }
     .icon { font-size: 48px; margin-bottom: 16px; }
     h1 { color: #1a1a2e; margin: 0 0 12px; font-size: 24px; }
-    p  { color: #666; font-size: 16px; line-height: 1.6; margin: 0; }
+    p  { color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 16px; }
+    .btn {
+      display: inline-block;
+      padding: 12px 28px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .btn:hover { background: #d63851; }
   </style>
 </head>
 <body>
   <div class="card">
+    {% if confirmed %}
     <div class="icon">✅</div>
     <h1>You've been unsubscribed</h1>
     <p>You won't receive any more emails from this newsletter.</p>
+    {% else %}
+    <div class="icon">📧</div>
+    <h1>Unsubscribe?</h1>
+    <p>Click the button below to confirm you'd like to stop receiving emails from this newsletter.</p>
+    <form method="POST" action="/unsubscribe/{{ token }}">
+      <button type="submit" class="btn">Confirm Unsubscribe</button>
+    </form>
+    {% endif %}
   </div>
-  <!--
-    NOTE: Some email security scanners pre-fetch all links in incoming emails,
-    which may trigger this page before the recipient reads the email.
-    This is a known tradeoff of one-click unsubscribe.
-  -->
 </body>
 </html>

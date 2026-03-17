@@ -17,7 +17,7 @@ def app(monkeypatch):
     monkeypatch.setenv('SMTP_USER', 'test@example.com')
     monkeypatch.setenv('SMTP_PASSWORD', 'testpass')
 
-    flask_app.config.update({'TESTING': True, 'SECRET_KEY': 'test-secret-key'})
+    flask_app.config.update({'TESTING': True, 'SECRET_KEY': 'test-secret-key', 'WTF_CSRF_ENABLED': False})
 
     db_module.init_db()
 

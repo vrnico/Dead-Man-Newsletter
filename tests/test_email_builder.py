@@ -142,3 +142,35 @@ def test_different_recipients_get_different_pixel_tokens():
     t1 = re.search(r'/track/1/([0-9a-f]+)\.gif', html1).group(1)
     t2 = re.search(r'/track/1/([0-9a-f]+)\.gif', html2).group(1)
     assert t1 != t2
+
+
+def test_script_tags_are_stripped():
+    html = email_builder.build_email(
+        body='<p>Hello</p><script>alert("xss")</script>',
+        settings=BASE_SETTINGS,
+        unsubscribe_token='tok', send_id=1,
+        recipient_email='u@example.com', secret_key='s',
+    )
+    assert '<script>' not in html
+    assert '</script>' not in html
+
+
+def test_onerror_handler_stripped():
+    html = email_builder.build_email(
+        body='<img src="x" onerror="alert(1)">',
+        settings=BASE_SETTINGS,
+        unsubscribe_token='tok', send_id=1,
+        recipient_email='u@example.com', secret_key='s',
+    )
+    assert 'onerror' not in html
+
+
+def test_malicious_header_url_rejected():
+    settings = {**BASE_SETTINGS, 'header_image_url': '" onerror="alert(1)'}
+    html = email_builder.build_email(
+        body='<p>Hi</p>', settings=settings,
+        unsubscribe_token='tok', send_id=1,
+        recipient_email='u@example.com', secret_key='s',
+    )
+    # Invalid URL should be dropped entirely
+    assert 'onerror' not in html

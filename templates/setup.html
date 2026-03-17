@@ -1011,7 +1011,10 @@ async function runConnectionTest() {
     document.getElementById('nextStep').style.display = 'none';
 
     try {
-        const resp = await fetch('{{ url_for("setup_test_connection") }}', { method: 'POST' });
+        const resp = await fetch('{{ url_for("setup_test_connection") }}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content}
+        });
         const data = await resp.json();
 
         const ids = ['tr-connect', 'tr-tls', 'tr-auth'];
@@ -1159,6 +1162,7 @@ async function sendTestEmail() {
     formData.append('test_email', addr);
 
     try {
+        formData.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
         const resp = await fetch('{{ url_for("setup_send_test") }}', { method: 'POST', body: formData });
         const data = await resp.json();
 

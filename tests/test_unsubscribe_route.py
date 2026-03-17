@@ -7,19 +7,33 @@ def _add_contact(db, email, token):
     db.commit()
 
 
-def test_valid_token_unsubscribes_contact(client, db):
+def test_get_shows_confirmation_form(client, db):
     _add_contact(db, 'user@example.com', 'validtoken123abc')
-    client.get('/unsubscribe/validtoken123abc')
+    resp = client.get('/unsubscribe/validtoken123abc')
+    assert resp.status_code == 200
+    assert b'Confirm Unsubscribe' in resp.data
+    # GET should NOT unsubscribe
+    row = db.execute(
+        "SELECT unsubscribed FROM contacts WHERE email='user@example.com'"
+    ).fetchone()
+    assert row['unsubscribed'] == 0
+
+
+def test_post_unsubscribes_contact(client, db):
+    _add_contact(db, 'user@example.com', 'validtoken123abc')
+    resp = client.post('/unsubscribe/validtoken123abc')
+    assert resp.status_code == 200
     row = db.execute(
         "SELECT unsubscribed FROM contacts WHERE email='user@example.com'"
     ).fetchone()
     assert row['unsubscribed'] == 1
 
 
-def test_valid_token_returns_200(client, db):
+def test_post_shows_confirmed_message(client, db):
     _add_contact(db, 'user2@example.com', 'anothertoken456')
-    resp = client.get('/unsubscribe/anothertoken456')
+    resp = client.post('/unsubscribe/anothertoken456')
     assert resp.status_code == 200
+    assert b"unsubscribed" in resp.data.lower()
 
 
 def test_invalid_token_returns_200_no_error(client):
@@ -27,13 +41,7 @@ def test_invalid_token_returns_200_no_error(client):
     assert resp.status_code == 200
 
 
-def test_confirmation_page_contains_message(client, db):
-    _add_contact(db, 'user3@example.com', 'confirmtoken789')
-    resp = client.get('/unsubscribe/confirmtoken789')
-    assert b"unsubscribed" in resp.data.lower()
-
-
-def test_invalid_token_does_not_leak_info(client):
-    resp = client.get('/unsubscribe/doesnotexist')
-    # Should render the same confirmation page, not a 404 or error
+def test_invalid_token_post_returns_200(client):
+    resp = client.post('/unsubscribe/doesnotexist')
+    assert resp.status_code == 200
     assert b"unsubscribed" in resp.data.lower()

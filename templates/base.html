@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Newsletter App{% endblock %}</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     {% block head %}{% endblock %}
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -215,6 +216,18 @@
         {% endwith %}
         {% block content %}{% endblock %}
     </div>
+    <script>
+    // Auto-inject CSRF token into all POST forms
+    document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(form) {
+        if (!form.querySelector('input[name="csrf_token"]')) {
+            var input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'csrf_token';
+            input.value = '{{ csrf_token() }}';
+            form.prepend(input);
+        }
+    });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

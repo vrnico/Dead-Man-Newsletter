@@ -1,5 +1,33 @@
 import hmac
 import hashlib
+from html import escape as html_escape
+
+import bleach
+
+# Allowed HTML tags and attributes for sanitized rich text content
+ALLOWED_TAGS = [
+    'p', 'br', 'strong', 'em', 'u', 's', 'b', 'i', 'a', 'ul', 'ol', 'li',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'pre', 'code',
+    'span', 'div', 'img', 'hr', 'sub', 'sup', 'table', 'thead', 'tbody',
+    'tr', 'td', 'th',
+]
+ALLOWED_ATTRIBUTES = {
+    '*': ['style', 'class'],
+    'a': ['href', 'title', 'target', 'rel'],
+    'img': ['src', 'alt', 'width', 'height'],
+    'td': ['colspan', 'rowspan'],
+    'th': ['colspan', 'rowspan'],
+}
+
+
+def sanitize_html(html):
+    """Sanitize user-provided HTML to prevent XSS in emails."""
+    return bleach.clean(
+        html,
+        tags=ALLOWED_TAGS,
+        attributes=ALLOWED_ATTRIBUTES,
+        strip=True,
+    )
 
 
 def _make_pixel_token(send_id, recipient_email, secret_key):
@@ -7,6 +35,13 @@ def _make_pixel_token(send_id, recipient_email, secret_key):
     key = secret_key.encode() if isinstance(secret_key, str) else secret_key
     msg = f"{send_id}:{recipient_email}".encode()
     return hmac.new(key, msg, digestmod=hashlib.sha256).hexdigest()[:16]
+
+
+def _validate_url(url):
+    """Return the URL if it starts with http(s), else return empty string."""
+    if url and url.startswith(('https://', 'http://')):
+        return html_escape(url, quote=True)
+    return ''
 
 
 def build_email(body, settings, unsubscribe_token, send_id, recipient_email,
@@ -26,9 +61,12 @@ def build_email(body, settings, unsubscribe_token, send_id, recipient_email,
     Returns:
         Complete <!DOCTYPE html> string ready to send.
     """
+    # Sanitize the body HTML to prevent XSS
+    body = sanitize_html(body)
+
     chosen_font = font or settings.get('default_font', 'Georgia, serif')
-    header_url = settings.get('header_image_url', '').strip()
-    footer_url = settings.get('footer_image_url', '').strip()
+    header_url = _validate_url(settings.get('header_image_url', '').strip())
+    footer_url = _validate_url(settings.get('footer_image_url', '').strip())
     base_url = settings.get('base_url', '').strip()
     tracking_enabled = settings.get('tracking_pixel_enabled') == '1'
 
@@ -96,7 +134,7 @@ def build_email(body, settings, unsubscribe_token, send_id, recipient_email,
   </style>
 </head>
 <body style="margin:0;padding:20px;background:#f5f5f5;">
-  <div style="max-width:600px;margin:0 auto;font-family:{chosen_font};">
+  <div style="max-width:600px;margin:0 auto;font-family:{html_escape(chosen_font, quote=True)};">
     {content}
   </div>
 </body>

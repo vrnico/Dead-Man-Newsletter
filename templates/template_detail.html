@@ -186,6 +186,7 @@ async function previewEmail() {
     const form = document.getElementById('emailForm');
     const formData = new FormData(form);
 
+    formData.set('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
     const resp = await fetch('{{ url_for("template_preview", slug=template["slug"]) }}', {
         method: 'POST',
         body: formData
