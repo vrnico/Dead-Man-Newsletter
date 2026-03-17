@@ -3,13 +3,71 @@
 {% block head %}
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 <style>
-.ql-font-georgia       { font-family: Georgia, serif; }
-.ql-font-arial         { font-family: Arial, sans-serif; }
-.ql-font-helvetica     { font-family: Helvetica, sans-serif; }
-.ql-font-verdana       { font-family: Verdana, sans-serif; }
-.ql-font-times-new-roman { font-family: 'Times New Roman', serif; }
-.ql-font-trebuchet     { font-family: 'Trebuchet MS', sans-serif; }
-.ql-font-courier       { font-family: 'Courier New', monospace; }
+/* Font classes applied to editor content */
+.ql-font-georgia        { font-family: Georgia, serif; }
+.ql-font-palatino       { font-family: 'Palatino Linotype', Palatino, serif; }
+.ql-font-times-new-roman { font-family: 'Times New Roman', Times, serif; }
+.ql-font-garamond       { font-family: Garamond, serif; }
+.ql-font-arial          { font-family: Arial, sans-serif; }
+.ql-font-helvetica      { font-family: Helvetica, sans-serif; }
+.ql-font-verdana        { font-family: Verdana, sans-serif; }
+.ql-font-trebuchet      { font-family: 'Trebuchet MS', sans-serif; }
+.ql-font-tahoma         { font-family: Tahoma, sans-serif; }
+.ql-font-century-gothic { font-family: 'Century Gothic', sans-serif; }
+.ql-font-courier        { font-family: 'Courier New', Courier, monospace; }
+.ql-font-impact         { font-family: Impact, sans-serif; }
+
+/* Quill font picker: show names and render each in its own font */
+.ql-font .ql-picker-label::before,
+.ql-font .ql-picker-item::before                                  { content: 'Default'; }
+
+.ql-font .ql-picker-label[data-value="georgia"]::before,
+.ql-font .ql-picker-item[data-value="georgia"]::before            { content: 'Georgia'; }
+.ql-font .ql-picker-item[data-value="georgia"]                    { font-family: Georgia, serif; }
+
+.ql-font .ql-picker-label[data-value="palatino"]::before,
+.ql-font .ql-picker-item[data-value="palatino"]::before           { content: 'Palatino'; }
+.ql-font .ql-picker-item[data-value="palatino"]                   { font-family: 'Palatino Linotype', Palatino, serif; }
+
+.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-font .ql-picker-item[data-value="times-new-roman"]::before    { content: 'Times New Roman'; }
+.ql-font .ql-picker-item[data-value="times-new-roman"]            { font-family: 'Times New Roman', Times, serif; }
+
+.ql-font .ql-picker-label[data-value="garamond"]::before,
+.ql-font .ql-picker-item[data-value="garamond"]::before           { content: 'Garamond'; }
+.ql-font .ql-picker-item[data-value="garamond"]                   { font-family: Garamond, serif; }
+
+.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-font .ql-picker-item[data-value="arial"]::before              { content: 'Arial'; }
+.ql-font .ql-picker-item[data-value="arial"]                      { font-family: Arial, sans-serif; }
+
+.ql-font .ql-picker-label[data-value="helvetica"]::before,
+.ql-font .ql-picker-item[data-value="helvetica"]::before          { content: 'Helvetica'; }
+.ql-font .ql-picker-item[data-value="helvetica"]                  { font-family: Helvetica, sans-serif; }
+
+.ql-font .ql-picker-label[data-value="verdana"]::before,
+.ql-font .ql-picker-item[data-value="verdana"]::before            { content: 'Verdana'; }
+.ql-font .ql-picker-item[data-value="verdana"]                    { font-family: Verdana, sans-serif; }
+
+.ql-font .ql-picker-label[data-value="trebuchet"]::before,
+.ql-font .ql-picker-item[data-value="trebuchet"]::before          { content: 'Trebuchet MS'; }
+.ql-font .ql-picker-item[data-value="trebuchet"]                  { font-family: 'Trebuchet MS', sans-serif; }
+
+.ql-font .ql-picker-label[data-value="tahoma"]::before,
+.ql-font .ql-picker-item[data-value="tahoma"]::before             { content: 'Tahoma'; }
+.ql-font .ql-picker-item[data-value="tahoma"]                     { font-family: Tahoma, sans-serif; }
+
+.ql-font .ql-picker-label[data-value="century-gothic"]::before,
+.ql-font .ql-picker-item[data-value="century-gothic"]::before     { content: 'Century Gothic'; }
+.ql-font .ql-picker-item[data-value="century-gothic"]             { font-family: 'Century Gothic', sans-serif; }
+
+.ql-font .ql-picker-label[data-value="courier"]::before,
+.ql-font .ql-picker-item[data-value="courier"]::before            { content: 'Courier New'; }
+.ql-font .ql-picker-item[data-value="courier"]                    { font-family: 'Courier New', Courier, monospace; }
+
+.ql-font .ql-picker-label[data-value="impact"]::before,
+.ql-font .ql-picker-item[data-value="impact"]::before             { content: 'Impact'; }
+.ql-font .ql-picker-item[data-value="impact"]                     { font-family: Impact, sans-serif; }
 </style>
 {% endblock %}
 {% block content %}
@@ -52,7 +110,7 @@
                 </div>
                 <div class="form-group">
                   <label>Font <small class="text-muted">(default from Settings — change for this send only)</small></label>
-                  <select name="font">
+                  <select name="font" id="fontSelect">
                     {% for f in fonts %}
                     <option value="{{ f.value }}"
                       {% if f.value == settings.default_font %}selected{% endif %}>
@@ -62,7 +120,6 @@
                   </select>
                 </div>
                 <div style="display:flex;gap:8px;">
-                    <button type="button" class="btn btn-secondary" onclick="previewEmail()">Preview</button>
                     <button type="submit" class="btn btn-primary" onclick="return confirm('Send this email?')">Send</button>
                 </div>
             </div>
@@ -70,11 +127,12 @@
 
         <div>
             <div class="card">
-                <h3 class="mb-8">Preview</h3>
+                <h3 class="mb-8">Preview <small class="text-muted" style="font-weight:normal;font-size:12px;">— updates every 10 keystrokes</small></h3>
                 <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;">Subject will appear here...</div>
-                <div id="previewBody" class="preview-box">
-                    <p style="color:#999;text-align:center;padding:40px;">Fill in the fields and click Preview</p>
-                </div>
+                <iframe id="previewBody"
+                        style="width:100%;height:500px;border:1px solid #334155;border-radius:8px;background:white;"
+                        srcdoc="<p style='color:#999;text-align:center;padding:40px;font-family:sans-serif;'>Fill in the fields — preview updates automatically</p>">
+                </iframe>
             </div>
         </div>
     </div>
@@ -85,11 +143,11 @@
 <script src="https://cdn.quilljs.com/1.3.7/quill.js"></script>
 <script>
 var Font = Quill.import('formats/font');
-Font.whitelist = ['georgia','arial','helvetica','verdana','times-new-roman','trebuchet','courier'];
+Font.whitelist = ['georgia','palatino','times-new-roman','garamond','arial','helvetica','verdana','trebuchet','tahoma','century-gothic','courier','impact'];
 Quill.register(Font, true);
 
 var quillToolbar = [
-  [{ 'font': ['georgia','arial','helvetica','verdana','times-new-roman','trebuchet','courier'] }],
+  [{ 'font': ['georgia','palatino','times-new-roman','garamond','arial','helvetica','verdana','trebuchet','tahoma','century-gothic','courier','impact'] }],
   [{ 'size': ['small', false, 'large', 'huge'] }],
   ['bold', 'italic', 'underline'],
   ['link'],
@@ -105,7 +163,6 @@ var quill_{{ f.name }} = new Quill('#editor-{{ f.name }}', {
   theme: 'snow',
   modules: { toolbar: quillToolbar }
 });
-// Restore value if re-rendering (e.g. after preview)
 var existing_{{ f.name }} = document.getElementById('hidden-{{ f.name }}').value;
 if (existing_{{ f.name }}) {
   quill_{{ f.name }}.root.innerHTML = existing_{{ f.name }};
@@ -134,7 +191,28 @@ async function previewEmail() {
     const data = await resp.json();
 
     document.getElementById('previewSubject').textContent = 'Subject: ' + data.subject;
-    document.getElementById('previewBody').innerHTML = data.body;
+    document.getElementById('previewBody').srcdoc = data.body;
 }
+
+// Auto-preview every 10 keystrokes
+var keystrokeCount = 0;
+function onKeystroke() {
+  keystrokeCount++;
+  if (keystrokeCount >= 10) {
+    keystrokeCount = 0;
+    previewEmail();
+  }
+}
+
+document.querySelectorAll('#emailForm input[type="text"]').forEach(function(inp) {
+  inp.addEventListener('input', onKeystroke);
+});
+
+editors.forEach(function(q) {
+  q.editor.on('text-change', onKeystroke);
+});
+
+// Also update preview when font changes
+document.getElementById('fontSelect').addEventListener('change', previewEmail);
 </script>
 {% endblock %}

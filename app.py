@@ -344,6 +344,7 @@ def template_detail(slug):
 def template_preview(slug):
     db = get_db()
     tpl = db.execute("SELECT * FROM templates WHERE slug=?", (slug,)).fetchone()
+    s = get_settings(db)
     db.close()
     if not tpl:
         return jsonify({'error': 'Template not found'}), 404
@@ -353,11 +354,23 @@ def template_preview(slug):
     for f in fields:
         values[f['name']] = request.form.get(f['name'], '')
 
+    font = request.form.get('font', '').strip() or None
+
     from jinja2 import Template
     subject = Template(tpl['subject_template']).render(**values)
     body = Template(tpl['body_template']).render(**values)
 
-    return jsonify({'subject': subject, 'body': body})
+    full_html = email_builder.build_email(
+        body=body,
+        settings=s,
+        unsubscribe_token='preview',
+        send_id=0,
+        recipient_email='',
+        secret_key=app.secret_key,
+        font=font,
+    )
+
+    return jsonify({'subject': subject, 'body': full_html})
 
 
 @app.route('/templates/<slug>/send', methods=['POST'])
@@ -739,13 +752,18 @@ SETTINGS_KEYS = [
 ]
 
 FONT_OPTIONS = [
-    {'value': 'Georgia, serif',         'label': 'Georgia (serif)'},
-    {'value': 'Arial, sans-serif',      'label': 'Arial (sans-serif)'},
-    {'value': 'Helvetica, sans-serif',  'label': 'Helvetica (sans-serif)'},
-    {'value': 'Verdana, sans-serif',    'label': 'Verdana (sans-serif)'},
-    {'value': 'Times New Roman, serif', 'label': 'Times New Roman (serif)'},
-    {'value': 'Trebuchet MS, sans-serif','label': 'Trebuchet MS (sans-serif)'},
-    {'value': 'Courier New, monospace', 'label': 'Courier New (monospace)'},
+    {'value': 'Georgia, serif',                               'label': 'Georgia'},
+    {'value': "'Palatino Linotype', Palatino, serif",         'label': 'Palatino'},
+    {'value': "'Times New Roman', Times, serif",              'label': 'Times New Roman'},
+    {'value': 'Garamond, serif',                              'label': 'Garamond'},
+    {'value': 'Arial, sans-serif',                            'label': 'Arial'},
+    {'value': 'Helvetica, sans-serif',                        'label': 'Helvetica'},
+    {'value': 'Verdana, sans-serif',                          'label': 'Verdana'},
+    {'value': "'Trebuchet MS', sans-serif",                   'label': 'Trebuchet MS'},
+    {'value': 'Tahoma, sans-serif',                           'label': 'Tahoma'},
+    {'value': "'Century Gothic', sans-serif",                 'label': 'Century Gothic'},
+    {'value': "'Courier New', Courier, monospace",            'label': 'Courier New'},
+    {'value': 'Impact, sans-serif',                           'label': 'Impact'},
 ]
 
 
