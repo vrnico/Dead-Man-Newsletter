@@ -225,7 +225,7 @@ def add_contact():
 
     db = get_db()
     try:
-        db.execute("INSERT INTO contacts (email, name, groups) VALUES (?, ?, ?)",
+        db.execute("INSERT INTO contacts (email, name, groups, unsubscribe_token) VALUES (?, ?, ?, lower(hex(randomblob(16))))",
                     (email, name, json.dumps(group_list)))
         db.commit()
         flash(f'Added {email}', 'success')
@@ -283,7 +283,7 @@ def import_contacts():
         groups = parts[2].split(';') if len(parts) > 2 else []
         groups = [g.strip() for g in groups if g.strip()]
         try:
-            db.execute("INSERT INTO contacts (email, name, groups) VALUES (?, ?, ?)",
+            db.execute("INSERT INTO contacts (email, name, groups, unsubscribe_token) VALUES (?, ?, ?, lower(hex(randomblob(16))))",
                         (email, name, json.dumps(groups)))
             added += 1
         except Exception:

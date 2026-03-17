@@ -57,8 +57,31 @@ def init_db():
             trip_details TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
+
+        CREATE TABLE IF NOT EXISTS settings (
+            key   TEXT PRIMARY KEY NOT NULL,
+            value TEXT NOT NULL DEFAULT ''
+        );
     ''')
     conn.commit()
+
+    # Migrate: add unsubscribe_token to contacts if missing
+    existing_cols = [r[1] for r in conn.execute("PRAGMA table_info(contacts)").fetchall()]
+    if 'unsubscribe_token' not in existing_cols:
+        conn.execute("ALTER TABLE contacts ADD COLUMN unsubscribe_token TEXT")
+        conn.execute(
+            "UPDATE contacts SET unsubscribe_token = lower(hex(randomblob(16))) "
+            "WHERE unsubscribe_token IS NULL"
+        )
+        conn.commit()
+
+    # Migrate: add open_count to sends if missing
+    existing_send_cols = [r[1] for r in conn.execute("PRAGMA table_info(sends)").fetchall()]
+    if 'open_count' not in existing_send_cols:
+        conn.execute(
+            "ALTER TABLE sends ADD COLUMN open_count INTEGER NOT NULL DEFAULT 0"
+        )
+        conn.commit()
 
     # Seed default templates if empty
     if conn.execute("SELECT COUNT(*) FROM templates").fetchone()[0] == 0:
@@ -69,6 +92,24 @@ def init_db():
         conn.execute('''INSERT INTO deadman_switch
             (active, check_in_interval_hours, body, trip_details)
             VALUES (0, 72, '', '')''')
+        conn.commit()
+
+    # Seed default settings if empty
+    if conn.execute("SELECT COUNT(*) FROM settings").fetchone()[0] == 0:
+        defaults = [
+            ('base_url', ''),
+            ('header_image_url', ''),
+            ('footer_image_url', ''),
+            ('default_font', 'Georgia, serif'),
+            ('tracking_pixel_enabled', '0'),
+            ('url_shortener_enabled', '0'),
+            ('url_shortener_provider', 'bitly'),
+            ('url_shortener_api_key', ''),
+            ('url_shortener_bitly_group', ''),
+        ]
+        conn.executemany(
+            "INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", defaults
+        )
         conn.commit()
 
     conn.close()
