@@ -64,6 +64,7 @@ def init_db():
         );
     ''')
     conn.commit()
+    conn.execute("PRAGMA foreign_keys = ON")  # executescript() resets this pragma
 
     # Migrate: add unsubscribe_token to contacts if missing
     existing_cols = [r[1] for r in conn.execute("PRAGMA table_info(contacts)").fetchall()]
