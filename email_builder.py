@@ -80,6 +80,20 @@ def build_email(body, settings, unsubscribe_token, send_id, recipient_email,
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    .ql-font-georgia        {{ font-family: Georgia, serif; }}
+    .ql-font-palatino       {{ font-family: 'Palatino Linotype', Palatino, serif; }}
+    .ql-font-times-new-roman {{ font-family: 'Times New Roman', Times, serif; }}
+    .ql-font-garamond       {{ font-family: Garamond, serif; }}
+    .ql-font-arial          {{ font-family: Arial, sans-serif; }}
+    .ql-font-helvetica      {{ font-family: Helvetica, sans-serif; }}
+    .ql-font-verdana        {{ font-family: Verdana, sans-serif; }}
+    .ql-font-trebuchet      {{ font-family: 'Trebuchet MS', sans-serif; }}
+    .ql-font-tahoma         {{ font-family: Tahoma, sans-serif; }}
+    .ql-font-century-gothic {{ font-family: 'Century Gothic', sans-serif; }}
+    .ql-font-courier        {{ font-family: 'Courier New', Courier, monospace; }}
+    .ql-font-impact         {{ font-family: Impact, sans-serif; }}
+  </style>
 </head>
 <body style="margin:0;padding:20px;background:#f5f5f5;">
   <div style="max-width:600px;margin:0 auto;font-family:{chosen_font};">

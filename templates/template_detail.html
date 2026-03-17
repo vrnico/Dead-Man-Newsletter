@@ -17,57 +17,58 @@
 .ql-font-courier        { font-family: 'Courier New', Courier, monospace; }
 .ql-font-impact         { font-family: Impact, sans-serif; }
 
-/* Quill font picker: show names and render each in its own font */
-.ql-font .ql-picker-label::before,
-.ql-font .ql-picker-item::before                                  { content: 'Default'; }
+/* Quill font picker: override snow theme's "Sans Serif" default for all items.
+   Must match .ql-snow .ql-picker.ql-font specificity to win. */
+.ql-snow .ql-picker.ql-font .ql-picker-label::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item::before                                  { content: 'Default'; }
 
-.ql-font .ql-picker-label[data-value="georgia"]::before,
-.ql-font .ql-picker-item[data-value="georgia"]::before            { content: 'Georgia'; }
-.ql-font .ql-picker-item[data-value="georgia"]                    { font-family: Georgia, serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before            { content: 'Georgia'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]                    { font-family: Georgia, serif; }
 
-.ql-font .ql-picker-label[data-value="palatino"]::before,
-.ql-font .ql-picker-item[data-value="palatino"]::before           { content: 'Palatino'; }
-.ql-font .ql-picker-item[data-value="palatino"]                   { font-family: 'Palatino Linotype', Palatino, serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="palatino"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]::before           { content: 'Palatino'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="palatino"]                   { font-family: 'Palatino Linotype', Palatino, serif; }
 
-.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
-.ql-font .ql-picker-item[data-value="times-new-roman"]::before    { content: 'Times New Roman'; }
-.ql-font .ql-picker-item[data-value="times-new-roman"]            { font-family: 'Times New Roman', Times, serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="times-new-roman"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]::before    { content: 'Times New Roman'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="times-new-roman"]            { font-family: 'Times New Roman', Times, serif; }
 
-.ql-font .ql-picker-label[data-value="garamond"]::before,
-.ql-font .ql-picker-item[data-value="garamond"]::before           { content: 'Garamond'; }
-.ql-font .ql-picker-item[data-value="garamond"]                   { font-family: Garamond, serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="garamond"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]::before           { content: 'Garamond'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="garamond"]                   { font-family: Garamond, serif; }
 
-.ql-font .ql-picker-label[data-value="arial"]::before,
-.ql-font .ql-picker-item[data-value="arial"]::before              { content: 'Arial'; }
-.ql-font .ql-picker-item[data-value="arial"]                      { font-family: Arial, sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="arial"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]::before              { content: 'Arial'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="arial"]                      { font-family: Arial, sans-serif; }
 
-.ql-font .ql-picker-label[data-value="helvetica"]::before,
-.ql-font .ql-picker-item[data-value="helvetica"]::before          { content: 'Helvetica'; }
-.ql-font .ql-picker-item[data-value="helvetica"]                  { font-family: Helvetica, sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="helvetica"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]::before          { content: 'Helvetica'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="helvetica"]                  { font-family: Helvetica, sans-serif; }
 
-.ql-font .ql-picker-label[data-value="verdana"]::before,
-.ql-font .ql-picker-item[data-value="verdana"]::before            { content: 'Verdana'; }
-.ql-font .ql-picker-item[data-value="verdana"]                    { font-family: Verdana, sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="verdana"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]::before            { content: 'Verdana'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="verdana"]                    { font-family: Verdana, sans-serif; }
 
-.ql-font .ql-picker-label[data-value="trebuchet"]::before,
-.ql-font .ql-picker-item[data-value="trebuchet"]::before          { content: 'Trebuchet MS'; }
-.ql-font .ql-picker-item[data-value="trebuchet"]                  { font-family: 'Trebuchet MS', sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="trebuchet"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]::before          { content: 'Trebuchet MS'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="trebuchet"]                  { font-family: 'Trebuchet MS', sans-serif; }
 
-.ql-font .ql-picker-label[data-value="tahoma"]::before,
-.ql-font .ql-picker-item[data-value="tahoma"]::before             { content: 'Tahoma'; }
-.ql-font .ql-picker-item[data-value="tahoma"]                     { font-family: Tahoma, sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="tahoma"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]::before             { content: 'Tahoma'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="tahoma"]                     { font-family: Tahoma, sans-serif; }
 
-.ql-font .ql-picker-label[data-value="century-gothic"]::before,
-.ql-font .ql-picker-item[data-value="century-gothic"]::before     { content: 'Century Gothic'; }
-.ql-font .ql-picker-item[data-value="century-gothic"]             { font-family: 'Century Gothic', sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="century-gothic"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="century-gothic"]::before     { content: 'Century Gothic'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="century-gothic"]             { font-family: 'Century Gothic', sans-serif; }
 
-.ql-font .ql-picker-label[data-value="courier"]::before,
-.ql-font .ql-picker-item[data-value="courier"]::before            { content: 'Courier New'; }
-.ql-font .ql-picker-item[data-value="courier"]                    { font-family: 'Courier New', Courier, monospace; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="courier"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]::before            { content: 'Courier New'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="courier"]                    { font-family: 'Courier New', Courier, monospace; }
 
-.ql-font .ql-picker-label[data-value="impact"]::before,
-.ql-font .ql-picker-item[data-value="impact"]::before             { content: 'Impact'; }
-.ql-font .ql-picker-item[data-value="impact"]                     { font-family: Impact, sans-serif; }
+.ql-snow .ql-picker.ql-font .ql-picker-label[data-value="impact"]::before,
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]::before             { content: 'Impact'; }
+.ql-snow .ql-picker.ql-font .ql-picker-item[data-value="impact"]                     { font-family: Impact, sans-serif; }
 </style>
 {% endblock %}
 {% block content %}
@@ -120,6 +121,7 @@
                   </select>
                 </div>
                 <div style="display:flex;gap:8px;">
+                    <button type="button" class="btn btn-secondary" onclick="previewEmail()">Preview</button>
                     <button type="submit" class="btn btn-primary" onclick="return confirm('Send this email?')">Send</button>
                 </div>
             </div>
@@ -127,7 +129,7 @@
 
         <div>
             <div class="card">
-                <h3 class="mb-8">Preview <small class="text-muted" style="font-weight:normal;font-size:12px;">— updates every 10 keystrokes</small></h3>
+                <h3 class="mb-8">Preview <small class="text-muted" style="font-weight:normal;font-size:12px;">— auto-updates after 10 keystrokes or 5s idle</small></h3>
                 <div id="previewSubject" style="font-weight:bold;margin-bottom:8px;color:#94a3b8;">Subject will appear here...</div>
                 <iframe id="previewBody"
                         style="width:100%;height:500px;border:1px solid #334155;border-radius:8px;background:white;"
@@ -194,25 +196,33 @@ async function previewEmail() {
     document.getElementById('previewBody').srcdoc = data.body;
 }
 
-// Auto-preview every 10 keystrokes
+// Auto-preview: every 10 keystrokes, or 5 seconds after the last keystroke
 var keystrokeCount = 0;
-function onKeystroke() {
+var idleTimer = null;
+
+function schedulePreview() {
   keystrokeCount++;
+  clearTimeout(idleTimer);
   if (keystrokeCount >= 10) {
     keystrokeCount = 0;
     previewEmail();
+  } else {
+    idleTimer = setTimeout(function() {
+      keystrokeCount = 0;
+      previewEmail();
+    }, 5000);
   }
 }
 
 document.querySelectorAll('#emailForm input[type="text"]').forEach(function(inp) {
-  inp.addEventListener('input', onKeystroke);
+  inp.addEventListener('input', schedulePreview);
 });
 
 editors.forEach(function(q) {
-  q.editor.on('text-change', onKeystroke);
+  q.editor.on('text-change', schedulePreview);
 });
 
-// Also update preview when font changes
+// Update preview immediately when font changes
 document.getElementById('fontSelect').addEventListener('change', previewEmail);
 </script>
 {% endblock %}
