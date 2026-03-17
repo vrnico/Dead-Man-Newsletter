@@ -51,12 +51,13 @@ def build_email(body, settings, unsubscribe_token, send_id, recipient_email,
             f'style="width:100%;max-width:600px;display:block;" alt="">'
         )
 
-    # Unsubscribe footer (link only works if base_url is configured)
+    # Unsubscribe footer — always include token path; base_url makes it absolute
+    unsubscribe_path = f'/unsubscribe/{unsubscribe_token}'
     if base_url:
-        unsubscribe_url = f'{base_url}/unsubscribe/{unsubscribe_token}'
-        unsub_html = f'<a href="{unsubscribe_url}" style="color:#999;">Unsubscribe</a>'
+        unsubscribe_url = f'{base_url}{unsubscribe_path}'
     else:
-        unsub_html = 'Unsubscribe'
+        unsubscribe_url = unsubscribe_path
+    unsub_html = f'<a href="{unsubscribe_url}" style="color:#999;">Unsubscribe</a>'
     parts.append(
         f'<div style="text-align:center;padding:20px;font-size:12px;color:#999;">'
         f'{unsub_html}'

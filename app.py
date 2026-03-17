@@ -13,6 +13,7 @@ load_dotenv()
 
 from database import get_db, init_db, get_settings
 from mailer import send_email, send_bulk
+import mailer
 import email_builder
 
 ENV_PATH = Path(__file__).parent / '.env'
@@ -357,6 +358,7 @@ def template_preview(slug):
 
 @app.route('/templates/<slug>/send', methods=['POST'])
 def template_send(slug):
+
     db = get_db()
     tpl = db.execute("SELECT * FROM templates WHERE slug=?", (slug,)).fetchone()
     if not tpl:
@@ -369,6 +371,7 @@ def template_send(slug):
     for f in fields:
         values[f['name']] = request.form.get(f['name'], '')
 
+    font = request.form.get('font', '').strip() or None
     target_group = request.form.get('target_group', 'all')
     test_email = request.form.get('test_email', '').strip()
 
@@ -376,40 +379,88 @@ def template_send(slug):
     subject = Template(tpl['subject_template']).render(**values)
     body = Template(tpl['body_template']).render(**values)
 
-    # Wrap in basic HTML document
-    full_body = f'''<!DOCTYPE html>
-<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"></head>
-<body style="margin:0;padding:20px;background:#f5f5f5;">{body}</body></html>'''
+    s = get_settings(db)
+
+    # Optionally shorten URLs (shortener module added in Task 12)
+    if s.get('url_shortener_enabled') == '1':
+        try:
+            from shortener import shorten_all_urls
+            body = shorten_all_urls(body, s)
+        except ImportError:
+            pass  # shortener not yet implemented
 
     if test_email:
-        # Send test to single address
+        # Test send: use a placeholder token, no DB send row
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token='test',
+            send_id=0,
+            recipient_email=test_email,
+            secret_key=app.secret_key,
+            font=font,
+        )
         try:
-            send_email(test_email, '', subject, full_body)
+            mailer.send_email(test_email, '', subject, full_html)
             flash(f'Test email sent to {test_email}!', 'success')
         except Exception as e:
             flash(f'Error sending test: {e}', 'error')
         db.close()
         return redirect(url_for('template_detail', slug=slug))
 
-    # Send to group
+    # Resolve recipients
     if target_group == 'all':
-        rows = db.execute("SELECT email, name FROM contacts WHERE unsubscribed=0").fetchall()
+        rows = db.execute(
+            "SELECT * FROM contacts WHERE unsubscribed=0"
+        ).fetchall()
     else:
-        rows = db.execute("SELECT email, name, groups FROM contacts WHERE unsubscribed=0").fetchall()
-        rows = [r for r in rows if target_group in json.loads(r['groups'])]
+        all_rows = db.execute(
+            "SELECT * FROM contacts WHERE unsubscribed=0"
+        ).fetchall()
+        rows = [r for r in all_rows if target_group in json.loads(r['groups'])]
 
-    recipients = [(r['email'], r['name']) for r in rows]
-
-    if not recipients:
+    if not rows:
         flash('No recipients found for that group.', 'error')
         db.close()
         return redirect(url_for('template_detail', slug=slug))
 
-    successes, errors = send_bulk(recipients, subject, full_body)
+    # Insert sends row BEFORE sending (send_id needed for pixel URLs)
+    db.execute(
+        "INSERT INTO sends (template_id, subject, body, recipient_count) VALUES (?, ?, ?, 0)",
+        (tpl['id'], subject, body)
+    )
+    db.commit()
+    send_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
-    # Log the send
-    db.execute("INSERT INTO sends (template_id, subject, body, recipient_count) VALUES (?, ?, ?, ?)",
-               (tpl['id'], subject, full_body, successes))
+    successes = 0
+    errors = []
+    for r in rows:
+        # Ensure unsubscribe_token exists (lazy backfill for old contacts)
+        token = r['unsubscribe_token']
+        if not token:
+            token = __import__('secrets').token_hex(16)
+            db.execute(
+                "UPDATE contacts SET unsubscribe_token=? WHERE id=?",
+                (token, r['id'])
+            )
+            db.commit()
+
+        full_html = email_builder.build_email(
+            body=body, settings=s,
+            unsubscribe_token=token,
+            send_id=send_id,
+            recipient_email=r['email'],
+            secret_key=app.secret_key,
+            font=font,
+        )
+        try:
+            mailer.send_email(r['email'], r['name'], subject, full_html)
+            successes += 1
+        except Exception as e:
+            errors.append((r['email'], str(e)))
+
+    db.execute(
+        "UPDATE sends SET recipient_count=? WHERE id=?", (successes, send_id)
+    )
     db.commit()
     db.close()
 
